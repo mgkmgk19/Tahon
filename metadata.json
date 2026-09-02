@@ -1,0 +1,7 @@
+{
+  "name": "نظام إدارة محل الطاحونة",
+  "description": "تطبيق محلي بالكامل (Offline-First) لإدارة عمليات طاحونة الحبوب ومخزون التجار (توريد، تحويل، صرف) مع قاعدة بيانات محلية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

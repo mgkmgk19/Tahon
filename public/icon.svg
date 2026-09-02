@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="millGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d97706" />
+      <stop offset="50%" stop-color="#b45309" />
+      <stop offset="100%" stop-color="#78350f" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7" />
+      <stop offset="100%" stop-color="#fde68a" />
+    </linearGradient>
+  </defs>
+  <!-- Background with squircle safe-zone padding -->
+  <rect width="512" height="512" rx="110" fill="url(#millGrad)" />
+  
+  <!-- Outer Mill Ring -->
+  <circle cx="256" cy="256" r="175" fill="none" stroke="#fef3c7" stroke-width="12" stroke-opacity="0.35" stroke-dasharray="16 12" />
+  
+  <!-- Mill Stone & Wheat Icon -->
+  <g transform="translate(256, 256)">
+    <!-- Central Mill Hub -->
+    <circle cx="0" cy="0" r="85" fill="#fef3c7" />
+    <circle cx="0" cy="0" r="65" fill="#b45309" />
+    <circle cx="0" cy="0" r="22" fill="#fef3c7" />
+    
+    <!-- Wheat ears on sides -->
+    <path d="M-110,40 Q-130,-50 -70,-110 Q-50,-30 -80,20 Z" fill="url(#goldGrad)" opacity="0.9" />
+    <path d="M-90,-10 Q-110,-80 -50,-130 Q-30,-60 -60,-20 Z" fill="#fde68a" />
+    
+    <path d="M110,40 Q130,-50 70,-110 Q50,-30 80,20 Z" fill="url(#goldGrad)" opacity="0.9" />
+    <path d="M90,-10 Q110,-80 50,-130 Q30,-60 60,-20 Z" fill="#fde68a" />
+    
+    <!-- Mill blades / rays -->
+    <line x1="0" y1="-85" x2="0" y2="-130" stroke="#fef3c7" stroke-width="14" stroke-linecap="round" />
+    <line x1="0" y1="85" x2="0" y2="130" stroke="#fef3c7" stroke-width="14" stroke-linecap="round" />
+    <line x1="-85" y1="0" x2="-130" y2="0" stroke="#fef3c7" stroke-width="14" stroke-linecap="round" />
+    <line x1="85" y1="0" x2="130" y2="0" stroke="#fef3c7" stroke-width="14" stroke-linecap="round" />
+
+    <line x1="-60" y1="-60" x2="-95" y2="-95" stroke="#fef3c7" stroke-width="12" stroke-linecap="round" />
+    <line x1="60" y1="-60" x2="95" y2="-95" stroke="#fef3c7" stroke-width="12" stroke-linecap="round" />
+    <line x1="-60" y1="60" x2="-95" y2="95" stroke="#fef3c7" stroke-width="12" stroke-linecap="round" />
+    <line x1="60" y1="60" x2="95" y2="95" stroke="#fef3c7" stroke-width="12" stroke-linecap="round" />
+  </g>
+</svg>
