@@ -57,6 +57,16 @@ jobs:
           echo "Syncing Capacitor Android platform..."
           npx cap sync android
 
+      - name: Configure Storage Permissions for Documents/TAHON
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ]; then
+            if ! grep -q "WRITE_EXTERNAL_STORAGE" "$MANIFEST"; then
+              sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" \/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" \/>' "$MANIFEST"
+              echo "Added READ/WRITE_EXTERNAL_STORAGE permissions to AndroidManifest.xml"
+            fi
+          fi
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:

@@ -11,9 +11,16 @@ import {
   Terminal,
   Play,
   FileCode,
+  Share2,
+  HardDrive,
+  Smartphone,
+  Copy,
+  Check,
+  FolderCheck,
 } from 'lucide-react';
 import { UserRole, AuditLog } from '../types';
 import { millDb } from '../db/millDatabase';
+import { saveBackupToTahonaFolder, shareBackupFile } from '../utils/backupStorage';
 
 interface SettingsBackupViewProps {
   currentRole: UserRole;
@@ -30,6 +37,11 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
 }) => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [lastSavedPath, setLastSavedPath] = useState<string | null>(null);
+  const [copiedPath, setCopiedPath] = useState(false);
+
   const [sqlQuery, setSqlQuery] = useState('SELECT * FROM suppliers;');
   const [sqlResult, setSqlResult] = useState<{ columns: string[]; values: any[][] }[] | null>(null);
   const [sqlError, setSqlError] = useState<string | null>(null);
@@ -39,26 +51,101 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
 
   const showNotice = (type: 'success' | 'error', text: string) => {
     setNotification({ type, text });
-    setTimeout(() => setNotification(null), 4000);
+    setTimeout(() => setNotification(null), 5000);
   };
 
-  // Export Binary SQLite file (.sqlite)
-  const handleExportSqlite = () => {
+  const getTimestamp = () => {
+    const d = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+  };
+
+  // 1. Save SQLite backup directly to /storage/emulated/0/Documents/TAHON
+  const handleSaveSqliteToTahona = async () => {
     try {
+      setIsSaving(true);
       const bytes = millDb.exportSqliteBinary();
-      const blob = new Blob([bytes], { type: 'application/x-sqlite3' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mill_database_${new Date().toISOString().replace(/[:.]/g, '-')}.sqlite`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showNotice('success', 'تم تصدير ملف قاعدة بيانات SQLite (.sqlite) بنجاح.');
+      const filename = `mill_database_${getTimestamp()}.sqlite`;
+      const result = await saveBackupToTahonaFolder(filename, bytes, true);
+      setLastSavedPath(result.filePath);
+      showNotice(
+        'success',
+        result.isNative
+          ? `تم حفظ ملف قاعدة البيانات SQLite بنجاح في مجلد المستندات:\n${result.filePath}`
+          : `تم تنزيل نسخة قاعدة بيانات SQLite (${filename}) بنجاح.`
+      );
     } catch (err: any) {
-      showNotice('error', err.message || 'فشل تصدير ملف SQLite');
+      showNotice('error', err.message || 'فشل حفظ النسخة الاحتياطية في مجلد TAHON');
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  // 2. Share SQLite backup directly via WhatsApp, Telegram, Drive, etc.
+  const handleShareSqlite = async () => {
+    try {
+      setIsSharing(true);
+      const bytes = millDb.exportSqliteBinary();
+      const filename = `mill_backup_${getTimestamp()}.sqlite`;
+      const result = await shareBackupFile(filename, bytes, true, 'application/x-sqlite3');
+      if (result.success) {
+        showNotice('success', result.message);
+      } else {
+        showNotice('error', result.message);
+      }
+    } catch (err: any) {
+      showNotice('error', err.message || 'حدث خطأ أثناء محاولة المشاركة');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  // 3. Save JSON backup to Documents/TAHON
+  const handleSaveJsonToTahona = async () => {
+    try {
+      setIsSaving(true);
+      const json = await millDb.exportFullDatabase();
+      const filename = `mill_backup_${getTimestamp()}.json`;
+      const result = await saveBackupToTahonaFolder(filename, json, false);
+      setLastSavedPath(result.filePath);
+      showNotice(
+        'success',
+        result.isNative
+          ? `تم حفظ ملف JSON في مجلد المستندات:\n${result.filePath}`
+          : `تم تنزيل نسخة JSON (${filename}) بنجاح.`
+      );
+    } catch (err: any) {
+      showNotice('error', err.message || 'فشل حفظ نسخة JSON');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 4. Share JSON backup
+  const handleShareJson = async () => {
+    try {
+      setIsSharing(true);
+      const json = await millDb.exportFullDatabase();
+      const filename = `mill_backup_${getTimestamp()}.json`;
+      const result = await shareBackupFile(filename, json, false, 'application/json');
+      if (result.success) {
+        showNotice('success', result.message);
+      } else {
+        showNotice('error', result.message);
+      }
+    } catch (err: any) {
+      showNotice('error', err.message || 'حدث خطأ أثناء المشاركة');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  // Copy folder or file path to clipboard
+  const handleCopyPath = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedPath(true);
+    setTimeout(() => setCopiedPath(false), 2500);
+    showNotice('success', 'تم نسخ مسار المجلد إلى الحافظة بنجاح.');
   };
 
   // Import Binary SQLite file (.sqlite / .db)
@@ -82,25 +169,6 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
     } finally {
       setIsRestoring(false);
       if (sqliteInputRef.current) sqliteInputRef.current.value = '';
-    }
-  };
-
-  // Export JSON backup
-  const handleExportBackup = async () => {
-    try {
-      const jsonData = await millDb.exportFullDatabase();
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `grain-mill-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showNotice('success', 'تم تصدير النسخة الاحتياطية JSON بنجاح.');
-    } catch (err: any) {
-      showNotice('error', err.message || 'فشل تصدير النسخة الاحتياطية');
     }
   };
 
@@ -224,31 +292,123 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
         </div>
       </div>
 
-      {/* SQLite Management & Backup */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-          <Database className="w-5 h-5 text-emerald-800" />
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900">إدارة قاعدة بيانات SQLite والنسخ الاحتياطي</h2>
-            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-              محرك SQLite مدمج
-            </span>
+      {/* Android Documents/TAHON & Native Sharing Section */}
+      <div className="bg-gradient-to-br from-white to-amber-50/40 rounded-2xl p-6 border-2 border-amber-300/80 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-amber-200/70">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-700 text-white flex items-center justify-center shadow-xs">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900">
+                  النسخ الاحتياطي في مجلد أندرويد العام (Documents/TAHON) والمشاركة
+                </h2>
+                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  مسار متاح للمستخدم بدون روت
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                تخزين ومشاركة ملفات قاعدة البيانات في المجلد العام لجهازك للوصول إليها عبر تطبيق ملفاتي (My Files) أو إرسالها عبر الواتساب.
+              </p>
+            </div>
           </div>
         </div>
 
-        <p className="text-xs text-slate-500 leading-relaxed">
-          يعمل التطبيق الآن بواسطة محرك قاعدة بيانات <strong>SQLite</strong> محلي بالكامل وبأقصى سرعة ممكنة وبدون أي اعتماد على خوادم خارجية. يمكنك تحميل ملف قاعدة البيانات بصيغة <code>.sqlite</code> لفتحه في أي برنامج مثل DB Browser for SQLite أو أخذ نسخة JSON.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          {/* Export SQLite .sqlite */}
+        {/* Directory Info Box */}
+        <div className="bg-white p-3.5 rounded-xl border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-slate-700">
+            <FolderCheck className="w-5 h-5 text-amber-700 shrink-0" />
+            <div>
+              <span className="font-bold block text-slate-800">مسار حفظ النسخ الاحتياطية على الهاتف:</span>
+              <code className="font-mono text-[11px] text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 select-all font-bold">
+                /storage/emulated/0/Documents/TAHON/
+              </code>
+            </div>
+          </div>
           <button
             type="button"
-            onClick={handleExportSqlite}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs sm:text-sm font-bold shadow-xs transition"
+            onClick={() => handleCopyPath('/storage/emulated/0/Documents/TAHON/')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition shadow-2xs self-end sm:self-auto"
+            title="نسخ مسار المجلد"
           >
-            <Download className="w-4 h-4" />
-            <span>تصدير ملف SQLite (.sqlite)</span>
+            {copiedPath ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+            <span>{copiedPath ? 'تم النسخ!' : 'نسخ المسار'}</span>
+          </button>
+        </div>
+
+        {/* Last Saved Path Notification banner if available */}
+        {lastSavedPath && (
+          <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 p-3.5 rounded-xl text-xs flex items-start gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <span className="font-bold block">آخر ملف تم حفظه بنجاح:</span>
+              <code className="block font-mono text-[11px] bg-white/80 p-1.5 rounded border border-emerald-200 select-all font-bold text-emerald-950">
+                {lastSavedPath}
+              </code>
+              <p className="text-[11px] text-emerald-800">
+                يمكنك العثور على هذا الملف بالدخول إلى تطبيق <strong>ملفاتي (My Files) ➔ وحدة التخزين الداخلية ➔ Documents ➔ TAHON</strong>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopyPath(lastSavedPath)}
+              className="px-2.5 py-1 rounded bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-bold shrink-0 transition"
+            >
+              نسخ اسم الملف
+            </button>
+          </div>
+        )}
+
+        {/* Primary Action Buttons (Save in Documents/TAHON + Share WhatsApp) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* Button 1: Save directly to Documents/TAHON */}
+          <button
+            type="button"
+            onClick={handleSaveSqliteToTahona}
+            disabled={isSaving}
+            className="flex items-center justify-center gap-2.5 p-3.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition active:scale-[0.99] disabled:opacity-50"
+          >
+            <HardDrive className="w-4 h-4 text-amber-200" />
+            <span>{isSaving ? 'جاري الحفظ...' : 'حفظ نسخة SQLite في Documents/TAHON'}</span>
+          </button>
+
+          {/* Button 2: Share via WhatsApp & installed apps */}
+          <button
+            type="button"
+            onClick={handleShareSqlite}
+            disabled={isSharing}
+            className="flex items-center justify-center gap-2.5 p-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition active:scale-[0.99] disabled:opacity-50"
+          >
+            <Share2 className="w-4 h-4 text-emerald-100" />
+            <span>{isSharing ? 'جاري تجهيز المشاركة...' : 'مشاركة النسخة الاحتياطية (واتساب / التطبيقات)'}</span>
+          </button>
+        </div>
+
+        {/* Secondary Options: JSON Save & Share, Import SQLite */}
+        <div className="pt-2 border-t border-amber-200/70 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-slate-500 font-bold ml-1">خيارات إضافية:</span>
+
+          {/* Save JSON to TAHON */}
+          <button
+            type="button"
+            onClick={handleSaveJsonToTahona}
+            disabled={isSaving}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium transition"
+          >
+            <FileCode className="w-3.5 h-3.5 text-amber-700" />
+            <span>حفظ نسخة JSON في TAHON</span>
+          </button>
+
+          {/* Share JSON */}
+          <button
+            type="button"
+            onClick={handleShareJson}
+            disabled={isSharing}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium transition"
+          >
+            <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>مشاركة JSON عبر التطبيقات</span>
           </button>
 
           {/* Import SQLite file */}
@@ -265,23 +425,13 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
                 type="button"
                 onClick={() => sqliteInputRef.current?.click()}
                 disabled={isRestoring}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs sm:text-sm font-bold transition disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition disabled:opacity-50"
               >
-                <Upload className="w-4 h-4 text-emerald-700" />
-                <span>{isRestoring ? 'جاري الاستيراد...' : 'استيراد ملف SQLite (.sqlite)'}</span>
+                <Upload className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{isRestoring ? 'جاري الاستيراد...' : 'استيراد واستعادة من ملف SQLite (.sqlite)'}</span>
               </button>
             </div>
           )}
-
-          {/* Export JSON */}
-          <button
-            type="button"
-            onClick={handleExportBackup}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold shadow-xs transition"
-          >
-            <FileCode className="w-4 h-4 text-amber-700" />
-            <span>تصدير نسخة JSON</span>
-          </button>
 
           {/* Import JSON */}
           {currentRole === 'مدير' && (
@@ -297,10 +447,10 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
                 type="button"
                 onClick={() => jsonInputRef.current?.click()}
                 disabled={isRestoring}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium transition disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium transition disabled:opacity-50"
               >
-                <Upload className="w-4 h-4 text-slate-500" />
-                <span>استيراد JSON</span>
+                <Upload className="w-3.5 h-3.5 text-slate-500" />
+                <span>استيراد واستعادة من JSON</span>
               </button>
             </div>
           )}
@@ -310,12 +460,41 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
             <button
               type="button"
               onClick={handleResetSampleData}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs sm:text-sm font-bold transition mr-auto"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-bold transition mr-auto"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span>إعادة تعيين البيانات الافتراضية</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>إعادة تهيئة البيانات الافتراضية</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Standard SQLite Management & Query Console */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <Database className="w-5 h-5 text-emerald-800" />
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900">تصدير يدوي لملفات SQLite للمطورين</h2>
+            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              محرك SQLite 3 WASM
+            </span>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-500 leading-relaxed">
+          يمكنك أيضاً تنزيل نسخة مباشرة للكمبيوتر أو فتحها في برامج خارجية مثل DB Browser for SQLite:
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          {/* Export SQLite .sqlite direct download */}
+          <button
+            type="button"
+            onClick={handleSaveSqliteToTahona}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs sm:text-sm font-bold shadow-2xs transition"
+          >
+            <Download className="w-4 h-4 text-emerald-700" />
+            <span>تنزيل ملف SQLite (.sqlite) مباشرة</span>
+          </button>
         </div>
       </div>
 

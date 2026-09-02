@@ -947,7 +947,12 @@ class MillDatabase {
         ]);
       }
       this.memoryCache.purchase_order_items.push(newItem);
-      createdItems.push(newItem);
+      const prod = products.find((p) => p.id === item.product_id);
+      createdItems.push({
+        ...newItem,
+        product_name: prod?.name || `صنف #${item.product_id}`,
+        unit: prod?.unit || 'كيس',
+      });
 
       await this.adjustGrainStock(data.supplier_id, item.product_id, item.quantity);
     }
@@ -968,6 +973,137 @@ class MillDatabase {
       supplier_name: supplier?.name,
       total_quantity: totalBags,
     };
+  }
+
+  public async updatePurchaseOrder(
+    orderId: number,
+    data: {
+      supplier_id: number;
+      date: string;
+      notes?: string;
+      items: { product_id: number; quantity: number }[];
+    },
+    currentUser: string
+  ): Promise<PurchaseOrder> {
+    const existingOrder = this.memoryCache.purchase_orders.find((o) => o.id === orderId);
+    if (!existingOrder) throw new Error('أمر التوريد غير موجود');
+    if (!data.supplier_id) throw new Error('يجب اختيار التاجر');
+    if (!data.items || data.items.length === 0) throw new Error('يجب إضافة صنف واحد على الأقل');
+
+    for (const item of data.items) {
+      if (item.quantity <= 0) throw new Error('الكمية الموردة يجب أن تكون أكبر من الصفر');
+    }
+
+    // Rollback previous stock additions
+    const oldItems = this.memoryCache.purchase_order_items.filter((i) => i.order_id === orderId);
+    for (const oldItem of oldItems) {
+      await this.adjustGrainStock(existingOrder.supplier_id, oldItem.product_id, -oldItem.quantity);
+    }
+
+    // Update order header in DB & memory
+    existingOrder.supplier_id = data.supplier_id;
+    existingOrder.date = data.date;
+    existingOrder.notes = data.notes?.trim() || '';
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run('UPDATE purchase_orders SET supplier_id = ?, date = ?, notes = ? WHERE id = ?', [
+        existingOrder.supplier_id,
+        existingOrder.date,
+        existingOrder.notes,
+        orderId,
+      ]);
+      this.sqliteDb.run('DELETE FROM purchase_order_items WHERE order_id = ?', [orderId]);
+    }
+
+    // Remove old items from memory
+    this.memoryCache.purchase_order_items = this.memoryCache.purchase_order_items.filter(
+      (i) => i.order_id !== orderId
+    );
+
+    // Re-insert new items
+    const products = await this.getProducts();
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    let maxItemId = this.memoryCache.purchase_order_items.reduce((m, i) => Math.max(m, i.id), 0);
+    const newCreatedItems: PurchaseOrderItem[] = [];
+
+    for (const item of data.items) {
+      maxItemId++;
+      const newItem: PurchaseOrderItem = {
+        id: maxItemId,
+        order_id: orderId,
+        product_id: item.product_id,
+        quantity: item.quantity,
+      };
+
+      if (this.sqliteDb) {
+        this.sqliteDb.run('INSERT INTO purchase_order_items (id, order_id, product_id, quantity) VALUES (?, ?, ?, ?)', [
+          newItem.id,
+          newItem.order_id,
+          newItem.product_id,
+          newItem.quantity,
+        ]);
+      }
+      this.memoryCache.purchase_order_items.push(newItem);
+      const p = productMap.get(item.product_id);
+      newCreatedItems.push({
+        ...newItem,
+        product_name: p?.name || `صنف #${item.product_id}`,
+        unit: p?.unit || 'كيس',
+      });
+
+      // Apply new stock
+      await this.adjustGrainStock(data.supplier_id, item.product_id, item.quantity);
+    }
+
+    const supplier = await this.getSupplierById(data.supplier_id);
+    const totalBags = data.items.reduce((s, x) => s + x.quantity, 0);
+
+    await this.logAudit(
+      'تعديل أمر توريد',
+      `تم تعديل سند التوريد ${existingOrder.order_number} للتاجر: ${supplier?.name || ''} بإجمالي ${totalBags} كيس مع تحديث حركات المخزون`,
+      currentUser
+    );
+
+    this.persistSqlite();
+    this.notify();
+
+    return {
+      ...existingOrder,
+      items: newCreatedItems,
+      supplier_name: supplier?.name,
+      total_quantity: totalBags,
+    };
+  }
+
+  public async deletePurchaseOrder(orderId: number, currentUser: string): Promise<void> {
+    const order = this.memoryCache.purchase_orders.find((o) => o.id === orderId);
+    if (!order) throw new Error('أمر التوريد غير موجود');
+
+    const items = this.memoryCache.purchase_order_items.filter((i) => i.order_id === orderId);
+
+    // Rollback stock changes made by this order
+    for (const item of items) {
+      await this.adjustGrainStock(order.supplier_id, item.product_id, -item.quantity);
+    }
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run('DELETE FROM purchase_order_items WHERE order_id = ?', [orderId]);
+      this.sqliteDb.run('DELETE FROM purchase_orders WHERE id = ?', [orderId]);
+    }
+
+    this.memoryCache.purchase_order_items = this.memoryCache.purchase_order_items.filter(
+      (i) => i.order_id !== orderId
+    );
+    this.memoryCache.purchase_orders = this.memoryCache.purchase_orders.filter((o) => o.id !== orderId);
+
+    await this.logAudit(
+      'حذف أمر توريد',
+      `تم حذف سند التوريد ${order.order_number} وعكس جميع حركات المخزون ذات الصلة`,
+      currentUser
+    );
+
+    this.persistSqlite();
+    this.notify();
   }
 
   // --- Milling Orders (الطحن والتحويل) ---
@@ -1108,7 +1244,12 @@ class MillDatabase {
         );
       }
       this.memoryCache.milling_order_items.push(newItem);
-      createdItems.push(newItem);
+      createdItems.push({
+        ...newItem,
+        supplier_name: supplierMap.get(item.supplier_id) || `تاجر #${item.supplier_id}`,
+        grain_product_name: productMap.get(item.grain_product_id) || `حبوب #${item.grain_product_id}`,
+        flour_product_name: productMap.get(item.flour_product_id) || `مطحون #${item.flour_product_id}`,
+      });
 
       // Deduct grain stock
       await this.adjustGrainStock(item.supplier_id, item.grain_product_id, -item.grain_quantity);
@@ -1140,6 +1281,155 @@ class MillDatabase {
       total_grain: totalGrain,
       total_flour: totalFlour,
     };
+  }
+
+  public async updateMillingOrder(
+    orderId: number,
+    data: {
+      date: string;
+      notes?: string;
+      items: {
+        supplier_id: number;
+        grain_product_id: number;
+        flour_product_id: number;
+        grain_quantity: number;
+        flour_quantity: number;
+      }[];
+    },
+    currentUser: string
+  ): Promise<MillingOrder> {
+    const existingOrder = this.memoryCache.milling_orders.find((o) => o.id === orderId);
+    if (!existingOrder) throw new Error('أمر الطحن غير موجود');
+    if (!data.items || data.items.length === 0) throw new Error('يجب إضافة عملية طحن واحدة على الأقل');
+
+    for (const item of data.items) {
+      if (item.grain_quantity <= 0) throw new Error('كمية الحبوب يجب أن تكون أكبر من الصفر');
+      if (item.flour_quantity <= 0) throw new Error('كمية المطحون يجب أن تكون أكبر من الصفر');
+    }
+
+    // 1. Rollback previous stock changes (restore grain, reverse flour)
+    const oldItems = this.memoryCache.milling_order_items.filter((i) => i.order_id === orderId);
+    for (const oldItem of oldItems) {
+      await this.adjustGrainStock(oldItem.supplier_id, oldItem.grain_product_id, oldItem.grain_quantity);
+      await this.adjustFlourStock(oldItem.supplier_id, oldItem.flour_product_id, -oldItem.flour_quantity);
+    }
+
+    // 2. Update order header
+    existingOrder.date = data.date;
+    existingOrder.notes = data.notes?.trim() || '';
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run('UPDATE milling_orders SET date = ?, notes = ? WHERE id = ?', [
+        existingOrder.date,
+        existingOrder.notes,
+        orderId,
+      ]);
+      this.sqliteDb.run('DELETE FROM milling_order_items WHERE order_id = ?', [orderId]);
+    }
+
+    // Remove old items from memory cache
+    this.memoryCache.milling_order_items = this.memoryCache.milling_order_items.filter(
+      (i) => i.order_id !== orderId
+    );
+
+    // 3. Re-insert new items and apply new stock adjustments
+    const suppliers = await this.getSuppliers();
+    const products = await this.getProducts();
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));
+    const productMap = new Map(products.map((p) => [p.id, p.name]));
+
+    let maxItemId = this.memoryCache.milling_order_items.reduce((m, i) => Math.max(m, i.id), 0);
+    const newCreatedItems: MillingOrderItem[] = [];
+
+    for (const item of data.items) {
+      maxItemId++;
+      const newItem: MillingOrderItem = {
+        id: maxItemId,
+        order_id: orderId,
+        supplier_id: item.supplier_id,
+        grain_product_id: item.grain_product_id,
+        flour_product_id: item.flour_product_id,
+        grain_quantity: item.grain_quantity,
+        flour_quantity: item.flour_quantity,
+      };
+
+      if (this.sqliteDb) {
+        this.sqliteDb.run(
+          'INSERT INTO milling_order_items (id, order_id, supplier_id, grain_product_id, flour_product_id, grain_quantity, flour_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            newItem.id,
+            newItem.order_id,
+            newItem.supplier_id,
+            newItem.grain_product_id,
+            newItem.flour_product_id,
+            newItem.grain_quantity,
+            newItem.flour_quantity,
+          ]
+        );
+      }
+      this.memoryCache.milling_order_items.push(newItem);
+      newCreatedItems.push({
+        ...newItem,
+        supplier_name: supplierMap.get(item.supplier_id) || `تاجر #${item.supplier_id}`,
+        grain_product_name: productMap.get(item.grain_product_id) || `حبوب #${item.grain_product_id}`,
+        flour_product_name: productMap.get(item.flour_product_id) || `مطحون #${item.flour_product_id}`,
+      });
+
+      // Deduct grain stock & add flour stock
+      await this.adjustGrainStock(item.supplier_id, item.grain_product_id, -item.grain_quantity);
+      await this.adjustFlourStock(item.supplier_id, item.flour_product_id, item.flour_quantity);
+    }
+
+    const totalGrain = data.items.reduce((s, x) => s + x.grain_quantity, 0);
+    const totalFlour = data.items.reduce((s, x) => s + x.flour_quantity, 0);
+
+    await this.logAudit(
+      'تعديل أمر طحن',
+      `تم تعديل إذن الطحن ${existingOrder.order_number} بإجمالي ${totalGrain} كيس حبوب و${totalFlour} كيس مطحون مع تحديث حركات المخزون`,
+      currentUser
+    );
+
+    this.persistSqlite();
+    this.notify();
+
+    return {
+      ...existingOrder,
+      items: newCreatedItems,
+      total_grain: totalGrain,
+      total_flour: totalFlour,
+    };
+  }
+
+  public async deleteMillingOrder(orderId: number, currentUser: string): Promise<void> {
+    const order = this.memoryCache.milling_orders.find((o) => o.id === orderId);
+    if (!order) throw new Error('أمر الطحن غير موجود');
+
+    const items = this.memoryCache.milling_order_items.filter((i) => i.order_id === orderId);
+
+    // Rollback stock changes: add back grain, deduct flour
+    for (const item of items) {
+      await this.adjustGrainStock(item.supplier_id, item.grain_product_id, item.grain_quantity);
+      await this.adjustFlourStock(item.supplier_id, item.flour_product_id, -item.flour_quantity);
+    }
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run('DELETE FROM milling_order_items WHERE order_id = ?', [orderId]);
+      this.sqliteDb.run('DELETE FROM milling_orders WHERE id = ?', [orderId]);
+    }
+
+    this.memoryCache.milling_order_items = this.memoryCache.milling_order_items.filter(
+      (i) => i.order_id !== orderId
+    );
+    this.memoryCache.milling_orders = this.memoryCache.milling_orders.filter((o) => o.id !== orderId);
+
+    await this.logAudit(
+      'حذف أمر طحن',
+      `تم حذف إذن الطحن ${order.order_number} والتراجع عن جميع حركات الحبوب والمطحون المتعلقة به`,
+      currentUser
+    );
+
+    this.persistSqlite();
+    this.notify();
   }
 
   // --- Withdrawal Orders (أوامر الصرف والتسليم) ---
@@ -1263,7 +1553,12 @@ class MillDatabase {
         );
       }
       this.memoryCache.withdrawal_order_items.push(newItem);
-      createdItems.push(newItem);
+      const prod = products.find((p) => p.id === item.product_id);
+      createdItems.push({
+        ...newItem,
+        product_name: prod?.name || `صنف #${item.product_id}`,
+        unit: prod?.unit || 'كيس',
+      });
 
       await this.adjustFlourStock(data.supplier_id, item.product_id, -item.quantity);
     }
@@ -1283,6 +1578,162 @@ class MillDatabase {
       supplier_name: supplier?.name,
       total_quantity: totalQty,
     };
+  }
+
+  public async updateWithdrawalOrder(
+    orderId: number,
+    data: {
+      supplier_id: number;
+      invoice_number: string;
+      receiver_name: string;
+      date: string;
+      notes?: string;
+      items: { product_id: number; quantity: number }[];
+    },
+    currentUser: string
+  ): Promise<WithdrawalOrder> {
+    const existingOrder = this.memoryCache.withdrawal_orders.find((o) => o.id === orderId);
+    if (!existingOrder) throw new Error('أمر الصرف غير موجود');
+    if (!data.supplier_id) throw new Error('يجب اختيار التاجر أولاً');
+    if (!data.invoice_number || !data.invoice_number.trim()) throw new Error('رقم الفاتورة المرجعية للتاجر إلزامي');
+    if (!data.receiver_name || !data.receiver_name.trim()) throw new Error('اسم مستلم الصنف إلزامي');
+    if (!data.items || data.items.length === 0) throw new Error('يجب إضافة صنف واحد على الأقل للصرف');
+
+    for (const item of data.items) {
+      if (item.quantity <= 0) throw new Error('الكمية المصروفة يجب أن تكون أكبر من الصفر');
+    }
+
+    // 1. Rollback previous stock deductions (add back the flour)
+    const oldItems = this.memoryCache.withdrawal_order_items.filter((i) => i.order_id === orderId);
+    for (const oldItem of oldItems) {
+      await this.adjustFlourStock(existingOrder.supplier_id, oldItem.product_id, oldItem.quantity);
+    }
+
+    // 2. Validate availability with the rolled back stock
+    const products = await this.getProducts();
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    for (const item of data.items) {
+      const available = await this.getFlourQuantity(data.supplier_id, item.product_id);
+      if (available < item.quantity) {
+        // Rollback the rollbacks so we don't leave corrupted stock in case of validation failure
+        for (const oldItem of oldItems) {
+          await this.adjustFlourStock(existingOrder.supplier_id, oldItem.product_id, -oldItem.quantity);
+        }
+        const pName = productMap.get(item.product_id)?.name || `الصنف #${item.product_id}`;
+        throw new Error(
+          `رصيد المطحون غير كافٍ للصرف بعد التعديل! التاجر يملك (${available} كيس) فقط من "${pName}"، والمطلوب (${item.quantity} كيس).`
+        );
+      }
+    }
+
+    // 3. Update order header in DB & memory
+    existingOrder.supplier_id = data.supplier_id;
+    existingOrder.invoice_number = data.invoice_number.trim();
+    existingOrder.receiver_name = data.receiver_name.trim();
+    existingOrder.date = data.date;
+    existingOrder.notes = data.notes?.trim() || '';
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run(
+        'UPDATE withdrawal_orders SET supplier_id = ?, invoice_number = ?, receiver_name = ?, date = ?, notes = ? WHERE id = ?',
+        [
+          existingOrder.supplier_id,
+          existingOrder.invoice_number,
+          existingOrder.receiver_name,
+          existingOrder.date,
+          existingOrder.notes,
+          orderId,
+        ]
+      );
+      this.sqliteDb.run('DELETE FROM withdrawal_order_items WHERE order_id = ?', [orderId]);
+    }
+
+    // Remove old items from memory
+    this.memoryCache.withdrawal_order_items = this.memoryCache.withdrawal_order_items.filter(
+      (i) => i.order_id !== orderId
+    );
+
+    // 4. Re-insert new items & deduct new stock
+    let maxItemId = this.memoryCache.withdrawal_order_items.reduce((m, i) => Math.max(m, i.id), 0);
+    const newCreatedItems: WithdrawalOrderItem[] = [];
+
+    for (const item of data.items) {
+      maxItemId++;
+      const availableAtTime = await this.getFlourQuantity(data.supplier_id, item.product_id);
+      const newItem: WithdrawalOrderItem = {
+        id: maxItemId,
+        order_id: orderId,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        available_at_time: availableAtTime,
+      };
+
+      if (this.sqliteDb) {
+        this.sqliteDb.run(
+          'INSERT INTO withdrawal_order_items (id, order_id, product_id, quantity, available_at_time) VALUES (?, ?, ?, ?, ?)',
+          [newItem.id, newItem.order_id, newItem.product_id, newItem.quantity, newItem.available_at_time]
+        );
+      }
+      this.memoryCache.withdrawal_order_items.push(newItem);
+      const prod = productMap.get(item.product_id);
+      newCreatedItems.push({
+        ...newItem,
+        product_name: prod?.name || `صنف #${item.product_id}`,
+        unit: prod?.unit || 'كيس',
+      });
+
+      await this.adjustFlourStock(data.supplier_id, item.product_id, -item.quantity);
+    }
+
+    const supplier = await this.getSupplierById(data.supplier_id);
+    const totalQty = data.items.reduce((s, x) => s + x.quantity, 0);
+
+    await this.logAudit(
+      'تعديل أمر صرف',
+      `تم تعديل سند الصرف ${existingOrder.order_number} للتاجر: ${supplier?.name} بإجمالي ${totalQty} كيس مطحون مع تحديث حركات المخزون`,
+      currentUser
+    );
+
+    this.persistSqlite();
+    this.notify();
+
+    return {
+      ...existingOrder,
+      items: newCreatedItems,
+      supplier_name: supplier?.name,
+      total_quantity: totalQty,
+    };
+  }
+
+  public async deleteWithdrawalOrder(orderId: number, currentUser: string): Promise<void> {
+    const order = this.memoryCache.withdrawal_orders.find((o) => o.id === orderId);
+    if (!order) throw new Error('أمر الصرف غير موجود');
+
+    const items = this.memoryCache.withdrawal_order_items.filter((i) => i.order_id === orderId);
+
+    // Rollback stock changes: refund/return flour back into stock
+    for (const item of items) {
+      await this.adjustFlourStock(order.supplier_id, item.product_id, item.quantity);
+    }
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run('DELETE FROM withdrawal_order_items WHERE order_id = ?', [orderId]);
+      this.sqliteDb.run('DELETE FROM withdrawal_orders WHERE id = ?', [orderId]);
+    }
+
+    this.memoryCache.withdrawal_order_items = this.memoryCache.withdrawal_order_items.filter(
+      (i) => i.order_id !== orderId
+    );
+    this.memoryCache.withdrawal_orders = this.memoryCache.withdrawal_orders.filter((o) => o.id !== orderId);
+
+    await this.logAudit(
+      'حذف أمر صرف',
+      `تم حذف سند الصرف ${order.order_number} وإعادة ${items.reduce((s, x) => s + x.quantity, 0)} كيس إلى رصيد مطحون التاجر`,
+      currentUser
+    );
+
+    this.persistSqlite();
+    this.notify();
   }
 
   // --- Live Inventory & Reports Aggregator ---

@@ -268,7 +268,7 @@ export default function App() {
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span>الصلاحيات والنسخ الاحتياطي</span>
+              <span>النسخ الاحتياطي (TAHON) والصلاحيات</span>
             </button>
           </div>
         </div>

@@ -366,11 +366,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100">
-            <div className="bg-amber-50 rounded-xl p-3 border border-amber-200/70 flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-900 leading-relaxed">
-                <strong>حماية البيانات:</strong> جميع البيانات مخزنة محلياً في جهازك داخل قاعدة بيانات Room/IndexedDB، ولا يتم إرسال أي معلومة إلى خوادم خارجية.
+            <div className="bg-amber-50 rounded-xl p-3.5 border border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-950 leading-relaxed">
+                  <strong>النسخ الاحتياطي وحماية البيانات:</strong> البيانات محفوظة بمحرك SQLite محلياً. يمكنك حفظ نسخة احتياطية في مجلد الهاتف العام <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-200 font-bold text-[11px]">Documents/TAHON</code> أو إرسالها فوراً عبر الواتساب.
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('android')}
+                className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs whitespace-nowrap transition shadow-2xs self-end sm:self-auto"
+              >
+                النسخ الاحتياطي والمشاركة
+              </button>
             </div>
           </div>
         </div>
