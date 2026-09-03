@@ -902,6 +902,7 @@ class MillDatabase {
     const maxOrderId = this.memoryCache.purchase_orders.reduce((m, o) => Math.max(m, o.id), 0);
     const orderId = maxOrderId + 1;
     const orderNumber = await this.generateOrderNumber('PO', data.date);
+    const products = await this.getProducts();
 
     const newOrder: PurchaseOrder = {
       id: orderId,

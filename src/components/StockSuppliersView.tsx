@@ -13,6 +13,7 @@ import {
   Phone,
   MapPin,
   Calendar,
+  FileText,
 } from 'lucide-react';
 import { Supplier, Product, StockSummaryRow, UserRole } from '../types';
 import { millDb } from '../db/millDatabase';
@@ -23,6 +24,7 @@ interface StockSuppliersViewProps {
   products: Product[];
   currentRole: UserRole;
   currentUserName: string;
+  onViewSupplierLedger?: (supplierId: number) => void;
 }
 
 export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
@@ -31,6 +33,7 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
   products,
   currentRole,
   currentUserName,
+  onViewSupplierLedger,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'stock' | 'suppliers' | 'products'>('stock');
   const [searchTerm, setSearchTerm] = useState('');
@@ -383,6 +386,21 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
                     <p className="text-[11px] text-slate-400 italic">لا يوجد مطحون جاهز لهذا التاجر حالياً</p>
                   )}
                 </div>
+
+                {/* Direct Ledger Button */}
+                {onViewSupplierLedger && (
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-500">حسابات الوارد والمنصرف:</span>
+                    <button
+                      type="button"
+                      onClick={() => onViewSupplierLedger(supplier.supplier_id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-800 text-amber-900 hover:text-white text-xs font-bold transition border border-amber-200 hover:border-amber-800 shadow-xs"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>كشف حركة التاجر (وارد / منصرف / رصيد)</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           ) : (
@@ -418,6 +436,16 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
                   {canManage && (
                     <td className="p-3.5 text-center">
                       <div className="inline-flex items-center gap-1.5">
+                        {onViewSupplierLedger && (
+                          <button
+                            type="button"
+                            onClick={() => onViewSupplierLedger(s.id)}
+                            className="p-1.5 text-amber-800 hover:text-amber-900 rounded-lg hover:bg-amber-100 transition"
+                            title="عرض كشف حساب وحركة التاجر"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleOpenEditSupplier(s)}

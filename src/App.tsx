@@ -46,6 +46,7 @@ type ActiveTab =
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [reportSupplierId, setReportSupplierId] = useState<number | undefined>(undefined);
 
   // User Authentication / Role
   const [currentRole, setCurrentRole] = useState<UserRole>('مدير');
@@ -360,6 +361,10 @@ export default function App() {
             products={products}
             currentRole={currentRole}
             currentUserName={currentUserName}
+            onViewSupplierLedger={(supId) => {
+              setReportSupplierId(supId);
+              setActiveTab('reports');
+            }}
           />
         )}
 
@@ -371,6 +376,7 @@ export default function App() {
             suppliers={suppliers}
             products={products}
             summary={stockSummary}
+            initialSupplierId={reportSupplierId}
           />
         )}
 
