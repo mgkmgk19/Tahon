@@ -64,8 +64,8 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
     supplier_id: suppliers[0]?.id || 1,
     grain_product_id: grainProducts[0]?.id || 1,
     flour_product_id: flourProducts[0]?.id || 5,
-    grain_quantity: '40',
-    flour_quantity: '32',
+    grain_quantity: '',
+    flour_quantity: '',
   };
 
   // Create Form State
@@ -118,8 +118,8 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
         supplier_id: suppliers[0]?.id || 1,
         grain_product_id: grainProducts[0]?.id || 1,
         flour_product_id: flourProducts[0]?.id || 5,
-        grain_quantity: '20',
-        flour_quantity: '16',
+        grain_quantity: '',
+        flour_quantity: '',
       },
     ]);
   };
@@ -139,7 +139,7 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
   const getRowDeficit = (row: FormMillingRow) => {
     const gQty = parseFloat(row.grain_quantity) || 0;
     const available = getAvailableGrain(row.supplier_id, row.grain_product_id);
-    const isExceeding = gQty > available;
+    const isExceeding = gQty > 0 && gQty > available;
     const deficit = isExceeding ? gQty - Math.max(0, available) : 0;
     const balanceAfter = available - gQty;
     return { gQty, available, isExceeding, deficit, balanceAfter };
@@ -218,7 +218,7 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
       setTimeout(() => {
         onCloseNewModal();
         setSuccessMessage('');
-        onViewVoucher(created);
+        setRows([defaultRow]);
       }, 700);
     } catch (err: any) {
       setErrorMessage(err.message || 'حدث خطأ أثناء حفظ أمر الطحن');
@@ -256,8 +256,8 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
         supplier_id: suppliers[0]?.id || 1,
         grain_product_id: grainProducts[0]?.id || 1,
         flour_product_id: flourProducts[0]?.id || 5,
-        grain_quantity: '20',
-        flour_quantity: '16',
+        grain_quantity: '',
+        flour_quantity: '',
       },
     ]);
   };
@@ -329,7 +329,6 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
       setTimeout(() => {
         setEditingOrder(null);
         setEditSuccessMessage('');
-        onViewVoucher(updated);
       }, 700);
     } catch (err: any) {
       setEditErrorMessage(err.message || 'حدث خطأ أثناء تعديل إذن الطحن');
@@ -868,7 +867,7 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
                   {editRows.map((row, idx) => {
                     const availableForEdit = getAvailableGrainForEdit(row.supplier_id, row.grain_product_id);
                     const gQty = parseFloat(row.grain_quantity) || 0;
-                    const isExceeding = gQty > availableForEdit;
+                    const isExceeding = gQty > 0 && gQty > availableForEdit;
 
                     return (
                       <div key={idx} className="bg-white p-3.5 rounded-xl border border-slate-200">
@@ -925,6 +924,7 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
                                 step="any"
                                 value={row.grain_quantity}
                                 onChange={(e) => handleEditRowChange(idx, 'grain_quantity', e.target.value)}
+                                placeholder="0"
                                 className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono font-bold text-left focus:outline-none focus:border-blue-600"
                                 required
                               />
@@ -955,6 +955,7 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
                                 step="any"
                                 value={row.flour_quantity}
                                 onChange={(e) => handleEditRowChange(idx, 'flour_quantity', e.target.value)}
+                                placeholder="0"
                                 className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono font-bold text-left focus:outline-none focus:border-blue-600 text-emerald-800"
                                 required
                               />

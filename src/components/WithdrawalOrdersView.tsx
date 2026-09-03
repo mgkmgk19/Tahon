@@ -54,8 +54,8 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
   const [receiverName, setReceiverName] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<{ product_id: number; quantity: number }[]>([
-    { product_id: flourProducts[0]?.id || 5, quantity: 15 },
+  const [items, setItems] = useState<{ product_id: number; quantity: number | '' }[]>([
+    { product_id: flourProducts[0]?.id || 5, quantity: '' },
   ]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,7 +69,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
   const [editReceiverName, setEditReceiverName] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editNotes, setEditNotes] = useState('');
-  const [editItems, setEditItems] = useState<{ product_id: number; quantity: number }[]>([]);
+  const [editItems, setEditItems] = useState<{ product_id: number; quantity: number | '' }[]>([]);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [editErrorMessage, setEditErrorMessage] = useState('');
   const [editSuccessMessage, setEditSuccessMessage] = useState('');
@@ -109,7 +109,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
 
   const handleAddItem = () => {
     const defaultProd = flourProducts[0]?.id || 5;
-    setItems([...items, { product_id: defaultProd, quantity: 5 }]);
+    setItems([...items, { product_id: defaultProd, quantity: '' }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -117,7 +117,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
     setItems(items.filter((_, idx) => idx !== index));
   };
 
-  const handleItemChange = (index: number, field: 'product_id' | 'quantity', val: number) => {
+  const handleItemChange = (index: number, field: 'product_id' | 'quantity', val: number | '') => {
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: val };
     setItems(updated);
@@ -151,13 +151,13 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
     // Validate available flour balance
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      if (item.quantity <= 0) {
+      if (!item.quantity || Number(item.quantity) <= 0) {
         setErrorMessage(`البند ${i + 1}: الكمية المصروفة يجب أن تكون أكبر من الصفر`);
         return;
       }
 
       const available = getAvailableFlour(item.product_id);
-      if (available < item.quantity) {
+      if (available < Number(item.quantity)) {
         const prodName = flourProducts.find((p) => p.id === item.product_id)?.name;
         setErrorMessage(
           `رصيد المطحون غير كافٍ للصنف "${prodName}"! الرصيد المتاح للتاجر حالياً (${available} كيس) والمطلوب صرفه (${item.quantity} كيس).`
@@ -175,7 +175,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
           receiver_name: receiverName,
           date: orderDate,
           notes,
-          items,
+          items: items.map((i) => ({ product_id: i.product_id, quantity: Number(i.quantity) })),
         },
         currentUserName
       );
@@ -184,7 +184,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
       setTimeout(() => {
         onCloseNewModal();
         setSuccessMessage('');
-        onViewVoucher(created);
+        setItems([{ product_id: flourProducts[0]?.id || 5, quantity: '' }]);
       }, 700);
     } catch (err: any) {
       setErrorMessage(err.message || 'حدث خطأ أثناء حفظ أمر الصرف');
@@ -204,7 +204,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
     setEditItems(
       order.items && order.items.length > 0
         ? order.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity }))
-        : [{ product_id: flourProducts[0]?.id || 5, quantity: order.total_quantity || 10 }]
+        : [{ product_id: flourProducts[0]?.id || 5, quantity: order.total_quantity || '' }]
     );
     setEditErrorMessage('');
     setEditSuccessMessage('');
@@ -212,7 +212,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
 
   const handleAddEditItem = () => {
     const defaultProd = flourProducts[0]?.id || 5;
-    setEditItems([...editItems, { product_id: defaultProd, quantity: 5 }]);
+    setEditItems([...editItems, { product_id: defaultProd, quantity: '' }]);
   };
 
   const handleRemoveEditItem = (index: number) => {
@@ -220,7 +220,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
     setEditItems(editItems.filter((_, idx) => idx !== index));
   };
 
-  const handleEditItemChange = (index: number, field: 'product_id' | 'quantity', val: number) => {
+  const handleEditItemChange = (index: number, field: 'product_id' | 'quantity', val: number | '') => {
     const updated = [...editItems];
     updated[index] = { ...updated[index], [field]: val };
     setEditItems(updated);
@@ -251,12 +251,12 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
 
     for (let i = 0; i < editItems.length; i++) {
       const item = editItems[i];
-      if (item.quantity <= 0) {
+      if (!item.quantity || Number(item.quantity) <= 0) {
         setEditErrorMessage(`البند ${i + 1}: الكمية يجب أن تكون أكبر من الصفر`);
         return;
       }
       const available = getAvailableFlourForEdit(item.product_id);
-      if (available < item.quantity) {
+      if (available < Number(item.quantity)) {
         const prodName = flourProducts.find((p) => p.id === item.product_id)?.name;
         setEditErrorMessage(
           `رصيد المطحون غير كافٍ للصنف "${prodName}"! الرصيد المتاح للتاجر بعد التراجع عن السابق (${available} كيس) والمطلوب صرفه (${item.quantity} كيس).`
@@ -275,7 +275,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
           receiver_name: editReceiverName,
           date: editDate,
           notes: editNotes,
-          items: editItems,
+          items: editItems.map((i) => ({ product_id: i.product_id, quantity: Number(i.quantity) })),
         },
         currentUserName
       );
@@ -284,7 +284,6 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
       setTimeout(() => {
         setEditingOrder(null);
         setEditSuccessMessage('');
-        onViewVoucher(updated);
       }, 700);
     } catch (err: any) {
       setEditErrorMessage(err.message || 'حدث خطأ أثناء تعديل أمر الصرف');
@@ -592,7 +591,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
                 <div className="space-y-2">
                   {items.map((item, idx) => {
                     const available = getAvailableFlour(item.product_id);
-                    const isOver = item.quantity > available;
+                    const isOver = item.quantity !== '' && Number(item.quantity) > available;
 
                     return (
                       <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
@@ -630,10 +629,11 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
                                 type="number"
                                 min="1"
                                 value={item.quantity}
-                                onChange={(e) =>
-                                  handleItemChange(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 0))
-                                }
-                                placeholder="الكمية"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  handleItemChange(idx, 'quantity', val === '' ? '' : Math.max(0, parseInt(val, 10)));
+                                }}
+                                placeholder="0"
                                 className={`w-full px-2.5 py-1.5 rounded-lg border text-xs font-mono font-bold text-left focus:outline-none ${
                                   isOver ? 'border-rose-400 text-rose-800 bg-rose-50' : 'border-slate-200'
                                 }`}
@@ -827,7 +827,7 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
                 <div className="space-y-2">
                   {editItems.map((item, idx) => {
                     const available = getAvailableFlourForEdit(item.product_id);
-                    const isOver = item.quantity > available;
+                    const isOver = item.quantity !== '' && Number(item.quantity) > available;
 
                     return (
                       <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
@@ -865,9 +865,11 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
                                 type="number"
                                 min="1"
                                 value={item.quantity}
-                                onChange={(e) =>
-                                  handleEditItemChange(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 0))
-                                }
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  handleEditItemChange(idx, 'quantity', val === '' ? '' : Math.max(0, parseInt(val, 10)));
+                                }}
+                                placeholder="0"
                                 className={`w-full px-2.5 py-1.5 rounded-lg border text-xs font-mono font-bold text-left focus:outline-none ${
                                   isOver ? 'border-rose-400 text-rose-800 bg-rose-50' : 'border-slate-200'
                                 }`}

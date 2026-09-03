@@ -46,8 +46,8 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
   const [selectedSupplierId, setSelectedSupplierId] = useState<number>(suppliers[0]?.id || 0);
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<{ product_id: number; quantity: number }[]>([
-    { product_id: products.find((p) => p.category === 'حبوب')?.id || 1, quantity: 50 },
+  const [items, setItems] = useState<{ product_id: number; quantity: number | '' }[]>([
+    { product_id: products.find((p) => p.category === 'حبوب')?.id || 1, quantity: '' },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -58,7 +58,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
   const [editSupplierId, setEditSupplierId] = useState<number>(0);
   const [editDate, setEditDate] = useState('');
   const [editNotes, setEditNotes] = useState('');
-  const [editItems, setEditItems] = useState<{ product_id: number; quantity: number }[]>([]);
+  const [editItems, setEditItems] = useState<{ product_id: number; quantity: number | '' }[]>([]);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [editErrorMessage, setEditErrorMessage] = useState('');
   const [editSuccessMessage, setEditSuccessMessage] = useState('');
@@ -82,7 +82,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
 
   const handleAddItem = () => {
     const defaultProd = grainProducts[0]?.id || 1;
-    setItems([...items, { product_id: defaultProd, quantity: 10 }]);
+    setItems([...items, { product_id: defaultProd, quantity: '' }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -90,7 +90,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
     setItems(items.filter((_, idx) => idx !== index));
   };
 
-  const handleItemChange = (index: number, field: 'product_id' | 'quantity', val: number) => {
+  const handleItemChange = (index: number, field: 'product_id' | 'quantity', val: number | '') => {
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: val };
     setItems(updated);
@@ -112,7 +112,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
     }
 
     for (const item of items) {
-      if (!item.quantity || item.quantity <= 0) {
+      if (!item.quantity || Number(item.quantity) <= 0) {
         setErrorMessage('الكمية الموردة يجب أن تكون أكبر من الصفر');
         return;
       }
@@ -125,7 +125,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
           supplier_id: Number(selectedSupplierId),
           date: orderDate,
           notes,
-          items,
+          items: items.map((i) => ({ product_id: i.product_id, quantity: Number(i.quantity) })),
         },
         currentUserName
       );
@@ -134,7 +134,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
       setTimeout(() => {
         onCloseNewModal();
         setSuccessMessage('');
-        onViewVoucher(created);
+        setItems([{ product_id: products.find((p) => p.category === 'حبوب')?.id || 1, quantity: '' }]);
       }, 700);
     } catch (err: any) {
       setErrorMessage(err.message || 'حدث خطأ أثناء حفظ أمر التوريد');
@@ -152,7 +152,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
     setEditItems(
       order.items && order.items.length > 0
         ? order.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity }))
-        : [{ product_id: grainProducts[0]?.id || 1, quantity: order.total_quantity || 10 }]
+        : [{ product_id: grainProducts[0]?.id || 1, quantity: order.total_quantity || '' }]
     );
     setEditErrorMessage('');
     setEditSuccessMessage('');
@@ -160,7 +160,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
 
   const handleAddEditItem = () => {
     const defaultProd = grainProducts[0]?.id || 1;
-    setEditItems([...editItems, { product_id: defaultProd, quantity: 10 }]);
+    setEditItems([...editItems, { product_id: defaultProd, quantity: '' }]);
   };
 
   const handleRemoveEditItem = (index: number) => {
@@ -168,7 +168,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
     setEditItems(editItems.filter((_, idx) => idx !== index));
   };
 
-  const handleEditItemChange = (index: number, field: 'product_id' | 'quantity', val: number) => {
+  const handleEditItemChange = (index: number, field: 'product_id' | 'quantity', val: number | '') => {
     const updated = [...editItems];
     updated[index] = { ...updated[index], [field]: val };
     setEditItems(updated);
@@ -189,7 +189,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
       return;
     }
     for (const item of editItems) {
-      if (!item.quantity || item.quantity <= 0) {
+      if (!item.quantity || Number(item.quantity) <= 0) {
         setEditErrorMessage('الكمية يجب أن تكون أكبر من الصفر');
         return;
       }
@@ -203,7 +203,7 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
           supplier_id: Number(editSupplierId),
           date: editDate,
           notes: editNotes,
-          items: editItems,
+          items: editItems.map((i) => ({ product_id: i.product_id, quantity: Number(i.quantity) })),
         },
         currentUserName
       );
@@ -212,7 +212,6 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
       setTimeout(() => {
         setEditingOrder(null);
         setEditSuccessMessage('');
-        onViewVoucher(updated);
       }, 700);
     } catch (err: any) {
       setEditErrorMessage(err.message || 'حدث خطأ أثناء تعديل أمر التوريد');
@@ -496,8 +495,11 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={(e) => handleItemChange(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 0))}
-                            placeholder="الكمية"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleItemChange(idx, 'quantity', val === '' ? '' : Math.max(0, parseInt(val, 10)));
+                            }}
+                            placeholder="0"
                             className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono font-bold text-left focus:outline-none focus:border-amber-600"
                             required
                           />
@@ -670,8 +672,11 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={(e) => handleEditItemChange(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 0))}
-                            placeholder="الكمية"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleEditItemChange(idx, 'quantity', val === '' ? '' : Math.max(0, parseInt(val, 10)));
+                            }}
+                            placeholder="0"
                             className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono font-bold text-left focus:outline-none focus:border-blue-600"
                             required
                           />
