@@ -196,12 +196,32 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
   };
 
   const handleResetSampleData = async () => {
-    if (!window.confirm('هل تريد إعادة تعيين البيانات إلى البيانات التجريبية الافتراضية؟ سيتم تحديث السجلات.')) return;
+    if (!window.confirm('هل تريد إعادة تعيين البيانات وتعبئة البيانات التجريبية الافتراضية؟ سيتم شحن سجلات تجريبية للعرض والتدريب.')) return;
     try {
       await millDb.resetToDefaults(currentUserName);
-      showNotice('success', 'تمت إعادة تهيئة بيانات SQLite النموذجية بنجاح.');
+      showNotice('success', 'تمت تعبئة وتحديث البيانات التجريبية الافتراضية بنجاح.');
     } catch (err: any) {
       showNotice('error', 'فشل إعادة التعيين');
+    }
+  };
+
+  const handleClearDatabase = async (keepProducts: boolean = true) => {
+    const confirmMsg = keepProducts
+      ? 'هل أنت تأكد من تفريغ كافة بيانات الموردين وأوامر التوريد والطحن والصرف والمخزون؟ سيتم الإبقاء على قائمة تصنيفات المنتجات الأساسية للبدء الفوري بالإنتاج الفعلي.'
+      : 'تحذير هام جداً: سيتم تفريغ كافة قاعدة البيانات بما فيها الأصناف وجميع السجلات! هل تريد المتابعة؟';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await millDb.clearAllData(currentUserName, { keepDefaultProducts: keepProducts });
+      showNotice(
+        'success',
+        keepProducts
+          ? 'تم تفريغ العمليات والسجلات والمخزون بنجاح. أصبحت قاعدة البيانات فارغة وجاهزة للإنتاج الفعلي مع الحفاظ على أصناف المنتجات.'
+          : 'تم مسح قاعدة البيانات بالكامل بنجاح. قاعدة البيانات الآن فارغة 100%.'
+      );
+    } catch (err: any) {
+      showNotice('error', 'فشل تفريغ قاعدة البيانات');
     }
   };
 
@@ -454,20 +474,75 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
               </button>
             </div>
           )}
-
-          {/* Reset default data */}
-          {currentRole === 'مدير' && (
-            <button
-              type="button"
-              onClick={handleResetSampleData}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-bold transition mr-auto"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>إعادة تهيئة البيانات الافتراضية</span>
-            </button>
-          )}
         </div>
       </div>
+
+      {/* Database State Management: Production Clean Start vs Demo Data */}
+      {currentRole === 'مدير' && (
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <RotateCcw className="w-5 h-5 text-rose-700" />
+            <h2 className="text-base font-bold text-slate-900">إدارة وضع قاعدة البيانات (الإنتاج الفعلي vs البيانات التجريبية)</h2>
+          </div>
+
+          <p className="text-xs text-slate-600 leading-relaxed">
+            يمكنك إعداد حالة قاعدة البيانات حسب غرض استخدام التطبيق؛ سواء للبدء الفعلي بالإنتاج اليومي للمطحنة أو لاستعراض وظائف النظام بالبيانات التوضيحية:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            {/* Clean Start for Production */}
+            <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/40 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center font-bold text-sm">
+                  1
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">البدء بقاعدة بيانات فارغة (للإنتاج الفعلي)</h3>
+                  <p className="text-[11px] text-slate-500">تفريغ كافة العمليات وتصفير المخزون لتسجيل الحركات الميدانية الحقيقية.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleClearDatabase(true)}
+                  className="flex-1 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition shadow-2xs text-center cursor-pointer"
+                >
+                  تفريغ العمليات (الإبقاء على أصناف المنتجات)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleClearDatabase(false)}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-rose-200 rounded-lg text-xs font-semibold transition text-center cursor-pointer"
+                >
+                  تفريغ شامل (100% فارغة)
+                </button>
+              </div>
+            </div>
+
+            {/* Load Demo Data */}
+            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm">
+                  2
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">تعبئة البيانات التجريبية (للتدريب والعرض)</h3>
+                  <p className="text-[11px] text-slate-500">شحن بيانات تجريبية متكاملة للموردين وأوامر التوريد والطحن والصرف.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetSampleData}
+                className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-2xs text-center cursor-pointer mt-1"
+              >
+                تعبئة البيانات التجريبية الافتراضية
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Standard SQLite Management & Query Console */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">

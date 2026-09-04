@@ -97,6 +97,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Empty Database Banner if 0 suppliers and 0 purchase orders */}
+      {suppliers.length === 0 && purchaseOrders.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-amber-900 shadow-2xs animate-in fade-in duration-300">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+              <Wheat className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">قاعدة البيانات فارغة وجاهزة للبدء بالإنتاج الفعلي 🏭</h3>
+              <p className="text-xs text-amber-800/90 mt-0.5 leading-relaxed">
+                قاعدة البيانات خالية من أي سجلات سابقة. يمكنك البدء فوراً بإنشاء الموردين وتسجيل الشحنات الفعلية، أو شحن **البيانات التجريبية الافتراضية** للتدريب من تبويب الإعدادات.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onOpenNewPO}
+              className="flex-1 sm:flex-initial px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+            >
+              + تسجيل أول أمر توريد
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Welcome & Quick Actions Bar */}
       <div className="bg-gradient-to-r from-amber-800 to-amber-950 text-white rounded-2xl p-5 sm:p-6 shadow-md shadow-amber-950/20">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

@@ -525,7 +525,12 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
 
       {/* Supplier Modal */}
       {isSupplierModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsSupplierModalOpen(false);
+          }}
+        >
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-slate-900 text-base">
@@ -599,7 +604,12 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
 
       {/* Product Modal */}
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsProductModalOpen(false);
+          }}
+        >
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-slate-900 text-base">

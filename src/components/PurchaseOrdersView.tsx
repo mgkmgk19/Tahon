@@ -389,7 +389,12 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
 
       {/* New Purchase Order Modal */}
       {isOpenNewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onCloseNewModal();
+          }}
+        >
           <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 my-4">
             <div className="flex items-center justify-between px-6 py-4 bg-amber-900 text-white">
               <div className="flex items-center gap-2">
@@ -564,7 +569,12 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
 
       {/* Edit Purchase Order Modal */}
       {editingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEditingOrder(null);
+          }}
+        >
           <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 my-4">
             <div className="flex items-center justify-between px-6 py-4 bg-blue-900 text-white">
               <div className="flex items-center gap-2">
@@ -739,7 +749,12 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
 
       {/* Delete Confirmation Modal */}
       {orderToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOrderToDelete(null);
+          }}
+        >
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 my-4 p-6 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <Trash className="w-6 h-6" />

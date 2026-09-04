@@ -41,8 +41,8 @@ async function fetchVerifiedWasmBinary(): Promise<ArrayBuffer | null> {
   return null;
 }
 
-const STORAGE_KEY_BIN = 'mill_sqlite_db_bin_v2';
-const STORAGE_KEY_SNAPSHOT = 'mill_sqlite_snapshot_v2';
+const STORAGE_KEY_BIN = 'mill_sqlite_db_bin_v3';
+const STORAGE_KEY_SNAPSHOT = 'mill_sqlite_snapshot_v3';
 
 interface DBSchema {
   suppliers: Supplier[];
@@ -76,24 +76,25 @@ const SEED_PRODUCTS: Product[] = [
   { id: 8, name: 'سميد ناعم ممتاز', unit: 'كيس', category: 'مطحون', created_at: '2026-09-01 08:00:00' },
 ];
 
+// الأرصدة الافتتاحية للمخزون - مطابقة 100% مع صافي ناتج أوامر التوريد والطحن والصرف
 const SEED_GRAIN_STOCK: GrainStock[] = [
-  { id: 1, supplier_id: 1, product_id: 1, quantity: 120 },
-  { id: 2, supplier_id: 1, product_id: 3, quantity: 45 },
-  { id: 3, supplier_id: 2, product_id: 2, quantity: 85 },
-  { id: 4, supplier_id: 2, product_id: 4, quantity: 30 },
-  { id: 5, supplier_id: 3, product_id: 1, quantity: 240 },
-  { id: 6, supplier_id: 3, product_id: 3, quantity: 90 },
-  { id: 7, supplier_id: 4, product_id: 1, quantity: 160 },
+  { id: 1, supplier_id: 1, product_id: 1, quantity: 120 }, // 210 وارد - 90 مطحون = 120
+  { id: 2, supplier_id: 1, product_id: 3, quantity: 45 },  // 45 وارد = 45
+  { id: 3, supplier_id: 2, product_id: 2, quantity: 85 },  // 135 وارد - 50 مطحون = 85
+  { id: 4, supplier_id: 2, product_id: 4, quantity: 30 },  // 30 وارد = 30
+  { id: 5, supplier_id: 3, product_id: 1, quantity: 240 }, // 370 وارد - 130 مطحون = 240
+  { id: 6, supplier_id: 3, product_id: 3, quantity: 90 },  // 90 وارد = 90
+  { id: 7, supplier_id: 4, product_id: 1, quantity: 160 }, // 230 وارد - 70 مطحون = 160
 ];
 
 const SEED_FLOUR_STOCK: FlourStock[] = [
-  { id: 1, supplier_id: 1, product_id: 5, quantity: 50 },
-  { id: 2, supplier_id: 1, product_id: 7, quantity: 25 },
-  { id: 3, supplier_id: 2, product_id: 6, quantity: 35 },
-  { id: 4, supplier_id: 2, product_id: 8, quantity: 15 },
-  { id: 5, supplier_id: 3, product_id: 5, quantity: 80 },
-  { id: 6, supplier_id: 3, product_id: 7, quantity: 40 },
-  { id: 7, supplier_id: 4, product_id: 5, quantity: 60 },
+  { id: 1, supplier_id: 1, product_id: 5, quantity: 40 }, // 50 ناتج طحن - 10 منصرف = 40
+  { id: 2, supplier_id: 1, product_id: 7, quantity: 25 }, // 25 ناتج طحن = 25
+  { id: 3, supplier_id: 2, product_id: 6, quantity: 25 }, // 35 ناتج طحن - 10 منصرف = 25
+  { id: 4, supplier_id: 2, product_id: 8, quantity: 15 }, // 15 ناتج طحن = 15
+  { id: 5, supplier_id: 3, product_id: 5, quantity: 60 }, // 80 ناتج طحن - 20 منصرف = 60
+  { id: 6, supplier_id: 3, product_id: 7, quantity: 40 }, // 40 ناتج طحن = 40
+  { id: 7, supplier_id: 4, product_id: 5, quantity: 60 }, // 60 ناتج طحن = 60
 ];
 
 const SEED_AUDIT_LOGS: AuditLog[] = [
@@ -249,23 +250,87 @@ class MillDatabase {
           order_number: 'PO-20260901-001',
           supplier_id: 1,
           date: '2026-09-01',
-          notes: 'شحنة قمح نخب أول معبأة بأكياس خيش',
+          notes: 'توريد شحنة قمح بلدي صلب وشعير معقم معبأ بأكياس خيش',
           created_by: 'موظف الاستقبال',
-          created_at: '2026-09-01 09:15:00',
+          created_at: '2026-09-01 08:30:00',
+        },
+        {
+          id: 2,
+          order_number: 'PO-20260901-002',
+          supplier_id: 2,
+          date: '2026-09-01',
+          notes: 'شحنة قمح كندي نخب أول وذرة مجففة نخب ممتاز',
+          created_by: 'موظف الاستقبال',
+          created_at: '2026-09-01 09:00:00',
+        },
+        {
+          id: 3,
+          order_number: 'PO-20260901-003',
+          supplier_id: 3,
+          date: '2026-09-01',
+          notes: 'شحنة تجارية قمح بلدي وشعير بلدي معقم',
+          created_by: 'موظف الاستقبال',
+          created_at: '2026-09-01 09:30:00',
+        },
+        {
+          id: 4,
+          order_number: 'PO-20260901-004',
+          supplier_id: 4,
+          date: '2026-09-01',
+          notes: 'توريد محصول القمح البلدي الصلب الصيفي',
+          created_by: 'موظف الاستقبال',
+          created_at: '2026-09-01 10:00:00',
         },
       ],
-      purchase_order_items: [{ id: 1, order_id: 1, product_id: 1, quantity: 120 }],
+      purchase_order_items: [
+        // PO 1 (Supplier 1: 210 قمح + 45 شعير = 255 كيس)
+        { id: 1, order_id: 1, product_id: 1, quantity: 210 },
+        { id: 2, order_id: 1, product_id: 3, quantity: 45 },
+        // PO 2 (Supplier 2: 135 قمح مستورد + 30 ذرة صفراء = 165 كيس)
+        { id: 3, order_id: 2, product_id: 2, quantity: 135 },
+        { id: 4, order_id: 2, product_id: 4, quantity: 30 },
+        // PO 3 (Supplier 3: 370 قمح بلدي + 90 شعير = 460 كيس)
+        { id: 5, order_id: 3, product_id: 1, quantity: 370 },
+        { id: 6, order_id: 3, product_id: 3, quantity: 90 },
+        // PO 4 (Supplier 4: 230 قمح بلدي = 230 كيس)
+        { id: 7, order_id: 4, product_id: 1, quantity: 230 },
+      ],
       milling_orders: [
         {
           id: 1,
           order_number: 'MO-20260901-001',
           date: '2026-09-01',
-          notes: 'طحن دفعة الصباح مع فصل الدقيق عن الردة',
+          notes: 'طحن دفعة الصباح مع استخراج الدقيق الأبيض الفاخر والنخالة الخشنة',
           created_by: 'مدير التشغيل',
-          created_at: '2026-09-01 11:30:00',
+          created_at: '2026-09-01 10:30:00',
+        },
+        {
+          id: 2,
+          order_number: 'MO-20260901-002',
+          date: '2026-09-01',
+          notes: 'طحن قمح مستورد لإنتاج دقيق بر وسميد ناعم',
+          created_by: 'مدير التشغيل',
+          created_at: '2026-09-01 11:45:00',
+        },
+        {
+          id: 3,
+          order_number: 'MO-20260901-003',
+          date: '2026-09-01',
+          notes: 'طحن كمية تجارية لشركة البركة مع استخراج الدقيق الفاخر والنخالة',
+          created_by: 'مدير التشغيل',
+          created_at: '2026-09-01 13:00:00',
+        },
+        {
+          id: 4,
+          order_number: 'MO-20260901-004',
+          date: '2026-09-01',
+          notes: 'طحن أمانات الروابي لإنتاج الدقيق الفاخر',
+          created_by: 'مدير التشغيل',
+          created_at: '2026-09-01 14:00:00',
         },
       ],
       milling_order_items: [
+        // MO 1 (Supplier 1: 60 حبوب ➔ 50 دقيق فاخر، 30 حبوب ➔ 25 نخالة خشنة. إجمالي الحبوب المستهلكة = 90، إجمالي المطحون = 75)
         {
           id: 1,
           order_id: 1,
@@ -274,6 +339,63 @@ class MillDatabase {
           flour_product_id: 5,
           grain_quantity: 60,
           flour_quantity: 50,
+        },
+        {
+          id: 2,
+          order_id: 1,
+          supplier_id: 1,
+          grain_product_id: 1,
+          flour_product_id: 7,
+          grain_quantity: 30,
+          flour_quantity: 25,
+        },
+        // MO 2 (Supplier 2: 35 حبوب ➔ 35 دقيق بر، 15 حبوب ➔ 15 سميد ناعم. إجمالي الحبوب المستهلكة = 50، إجمالي المطحون = 50)
+        {
+          id: 3,
+          order_id: 2,
+          supplier_id: 2,
+          grain_product_id: 2,
+          flour_product_id: 6,
+          grain_quantity: 35,
+          flour_quantity: 35,
+        },
+        {
+          id: 4,
+          order_id: 2,
+          supplier_id: 2,
+          grain_product_id: 2,
+          flour_product_id: 8,
+          grain_quantity: 15,
+          flour_quantity: 15,
+        },
+        // MO 3 (Supplier 3: 90 حبوب ➔ 80 دقيق فاخر، 40 حبوب ➔ 40 نخالة. إجمالي الحبوب المستهلكة = 130، إجمالي المطحون = 120)
+        {
+          id: 5,
+          order_id: 3,
+          supplier_id: 3,
+          grain_product_id: 1,
+          flour_product_id: 5,
+          grain_quantity: 90,
+          flour_quantity: 80,
+        },
+        {
+          id: 6,
+          order_id: 3,
+          supplier_id: 3,
+          grain_product_id: 1,
+          flour_product_id: 7,
+          grain_quantity: 40,
+          flour_quantity: 40,
+        },
+        // MO 4 (Supplier 4: 70 حبوب ➔ 60 دقيق فاخر. إجمالي الحبوب المستهلكة = 70، إجمالي المطحون = 60)
+        {
+          id: 7,
+          order_id: 4,
+          supplier_id: 4,
+          grain_product_id: 1,
+          flour_product_id: 5,
+          grain_quantity: 70,
+          flour_quantity: 60,
         },
       ],
       withdrawal_orders: [
@@ -284,12 +406,41 @@ class MillDatabase {
           invoice_number: 'INV-8841',
           receiver_name: 'سالم الدوسري (السائق)',
           date: '2026-09-01',
-          notes: 'استلام دفعة الدقيق الفاخر الأولى',
+          notes: 'استلام دفعة الدقيق الفاخر الأولى بموجب فاتورة التاجر',
           created_by: 'موظف الاستقبال',
           created_at: '2026-09-01 14:20:00',
         },
+        {
+          id: 2,
+          order_number: 'WO-20260901-002',
+          supplier_id: 2,
+          invoice_number: 'INV-5512',
+          receiver_name: 'فهد العتيبي (سائق مخابز الهدى)',
+          date: '2026-09-01',
+          notes: 'تسليم دفعة دقيق بر أسمر للمخبز',
+          created_by: 'موظف الاستقبال',
+          created_at: '2026-09-01 15:30:00',
+        },
+        {
+          id: 3,
+          order_number: 'WO-20260901-003',
+          supplier_id: 3,
+          invoice_number: 'INV-9904',
+          receiver_name: 'شركة نقليات الشرق (مأمون عمر)',
+          date: '2026-09-01',
+          notes: 'تسليم دفعة أولى لأسواق التموين',
+          created_by: 'موظف الاستقبال',
+          created_at: '2026-09-01 16:15:00',
+        },
       ],
-      withdrawal_order_items: [{ id: 1, order_id: 1, product_id: 5, quantity: 10, available_at_time: 50 }],
+      withdrawal_order_items: [
+        // WO 1 (Supplier 1: 10 دقيق فاخر. متبقي = 50 - 10 = 40)
+        { id: 1, order_id: 1, product_id: 5, quantity: 10, available_at_time: 50 },
+        // WO 2 (Supplier 2: 10 دقيق بر أسمر. متبقي = 35 - 10 = 25)
+        { id: 2, order_id: 2, product_id: 6, quantity: 10, available_at_time: 35 },
+        // WO 3 (Supplier 3: 20 دقيق فاخر. متبقي = 80 - 20 = 60)
+        { id: 3, order_id: 3, product_id: 5, quantity: 20, available_at_time: 80 },
+      ],
       audit_logs: [...SEED_AUDIT_LOGS],
     };
   }
@@ -1749,7 +1900,7 @@ class MillDatabase {
 
     return suppliers.map((supplier) => {
       const gStock = grainStock
-        .filter((g) => g.supplier_id === supplier.id && g.quantity > 0)
+        .filter((g) => g.supplier_id === supplier.id && g.quantity !== 0)
         .map((g) => ({
           product_id: g.product_id,
           product_name: productMap.get(g.product_id)?.name || `حبوب #${g.product_id}`,
@@ -1757,7 +1908,7 @@ class MillDatabase {
         }));
 
       const fStock = flourStock
-        .filter((f) => f.supplier_id === supplier.id && f.quantity > 0)
+        .filter((f) => f.supplier_id === supplier.id && f.quantity !== 0)
         .map((f) => ({
           product_id: f.product_id,
           product_name: productMap.get(f.product_id)?.name || `مطحون #${f.product_id}`,
@@ -1777,6 +1928,232 @@ class MillDatabase {
         totalFlour,
       };
     });
+  }
+
+  /**
+   * أداة الفحص المحاسبي والمطابقة الذاتية للأرصدة والمخزون
+   * تقوم بمطابقة كل كيس في مستودعات الحبوب والمطحون مقابل سندات التوريد، الطحن، والصرف
+   */
+  public async auditAndReconcileBalances(
+    currentUser: string = 'مدير النظام',
+    autoFix: boolean = true
+  ): Promise<{
+    matched: boolean;
+    discrepancies: {
+      type: 'grain' | 'flour';
+      supplier_id: number;
+      supplier_name: string;
+      product_id: number;
+      product_name: string;
+      currentStock: number;
+      expectedStock: number;
+      diff: number;
+    }[];
+    totalGrainInOrders: number;
+    totalFlourInOrders: number;
+    totalGrainStock: number;
+    totalFlourStock: number;
+    fixedCount: number;
+  }> {
+    const suppliers = await this.getSuppliers();
+    const products = await this.getProducts();
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    const purchaseOrders = this.memoryCache.purchase_orders;
+    const poItems = this.memoryCache.purchase_order_items;
+    const millingOrders = this.memoryCache.milling_orders;
+    const moItems = this.memoryCache.milling_order_items;
+    const withdrawalOrders = this.memoryCache.withdrawal_orders;
+    const woItems = this.memoryCache.withdrawal_order_items;
+
+    // حساب الرصيد المتوقع للحبوب لكل تاجر وصنف بناءً على السندات
+    const expectedGrain = new Map<string, number>();
+    poItems.forEach((item) => {
+      const po = purchaseOrders.find((o) => o.id === item.order_id);
+      if (po) {
+        const key = `${po.supplier_id}-${item.product_id}`;
+        expectedGrain.set(key, (expectedGrain.get(key) || 0) + item.quantity);
+      }
+    });
+    moItems.forEach((item) => {
+      const key = `${item.supplier_id}-${item.grain_product_id}`;
+      expectedGrain.set(key, (expectedGrain.get(key) || 0) - item.grain_quantity);
+    });
+
+    // حساب الرصيد المتوقع للمطحون لكل تاجر وصنف بناءً على السندات
+    const expectedFlour = new Map<string, number>();
+    moItems.forEach((item) => {
+      const key = `${item.supplier_id}-${item.flour_product_id}`;
+      expectedFlour.set(key, (expectedFlour.get(key) || 0) + item.flour_quantity);
+    });
+    woItems.forEach((item) => {
+      const wo = withdrawalOrders.find((o) => o.id === item.order_id);
+      if (wo) {
+        const key = `${wo.supplier_id}-${item.product_id}`;
+        expectedFlour.set(key, (expectedFlour.get(key) || 0) - item.quantity);
+      }
+    });
+
+    const discrepancies: {
+      type: 'grain' | 'flour';
+      supplier_id: number;
+      supplier_name: string;
+      product_id: number;
+      product_name: string;
+      currentStock: number;
+      expectedStock: number;
+      diff: number;
+    }[] = [];
+    let fixedCount = 0;
+
+    // 1. تدقيق مخزون الحبوب
+    const currentGrainStock = await this.getGrainStock();
+    const checkedGrainKeys = new Set<string>();
+
+    for (const g of currentGrainStock) {
+      const key = `${g.supplier_id}-${g.product_id}`;
+      checkedGrainKeys.add(key);
+      const expected = expectedGrain.get(key) || 0;
+      if (Math.abs(g.quantity - expected) > 0.001) {
+        discrepancies.push({
+          type: 'grain',
+          supplier_id: g.supplier_id,
+          supplier_name: supplierMap.get(g.supplier_id) || `تاجر #${g.supplier_id}`,
+          product_id: g.product_id,
+          product_name: productMap.get(g.product_id)?.name || `حبوب #${g.product_id}`,
+          currentStock: g.quantity,
+          expectedStock: expected,
+          diff: g.quantity - expected,
+        });
+        if (autoFix) {
+          g.quantity = expected;
+          if (this.sqliteDb) {
+            this.sqliteDb.run('UPDATE grain_stock SET quantity = ? WHERE id = ?', [expected, g.id]);
+          }
+          fixedCount++;
+        }
+      }
+    }
+
+    expectedGrain.forEach((expected, key) => {
+      if (!checkedGrainKeys.has(key) && expected !== 0) {
+        const [supIdStr, prodIdStr] = key.split('-');
+        const supId = Number(supIdStr);
+        const prodId = Number(prodIdStr);
+        discrepancies.push({
+          type: 'grain',
+          supplier_id: supId,
+          supplier_name: supplierMap.get(supId) || `تاجر #${supId}`,
+          product_id: prodId,
+          product_name: productMap.get(prodId)?.name || `حبوب #${prodId}`,
+          currentStock: 0,
+          expectedStock: expected,
+          diff: -expected,
+        });
+        if (autoFix) {
+          const maxId = this.memoryCache.grain_stock.reduce((m, x) => Math.max(m, x.id), 0);
+          const newRow: GrainStock = { id: maxId + 1, supplier_id: supId, product_id: prodId, quantity: expected };
+          this.memoryCache.grain_stock.push(newRow);
+          if (this.sqliteDb) {
+            this.sqliteDb.run('INSERT INTO grain_stock (id, supplier_id, product_id, quantity) VALUES (?, ?, ?, ?)', [
+              newRow.id,
+              newRow.supplier_id,
+              newRow.product_id,
+              newRow.quantity,
+            ]);
+          }
+          fixedCount++;
+        }
+      }
+    });
+
+    // 2. تدقيق مخزون المطحون
+    const currentFlourStock = await this.getFlourStock();
+    const checkedFlourKeys = new Set<string>();
+
+    for (const f of currentFlourStock) {
+      const key = `${f.supplier_id}-${f.product_id}`;
+      checkedFlourKeys.add(key);
+      const expected = expectedFlour.get(key) || 0;
+      if (Math.abs(f.quantity - expected) > 0.001) {
+        discrepancies.push({
+          type: 'flour',
+          supplier_id: f.supplier_id,
+          supplier_name: supplierMap.get(f.supplier_id) || `تاجر #${f.supplier_id}`,
+          product_id: f.product_id,
+          product_name: productMap.get(f.product_id)?.name || `مطحون #${f.product_id}`,
+          currentStock: f.quantity,
+          expectedStock: expected,
+          diff: f.quantity - expected,
+        });
+        if (autoFix) {
+          f.quantity = expected;
+          if (this.sqliteDb) {
+            this.sqliteDb.run('UPDATE flour_stock SET quantity = ? WHERE id = ?', [expected, f.id]);
+          }
+          fixedCount++;
+        }
+      }
+    }
+
+    expectedFlour.forEach((expected, key) => {
+      if (!checkedFlourKeys.has(key) && expected !== 0) {
+        const [supIdStr, prodIdStr] = key.split('-');
+        const supId = Number(supIdStr);
+        const prodId = Number(prodIdStr);
+        discrepancies.push({
+          type: 'flour',
+          supplier_id: supId,
+          supplier_name: supplierMap.get(supId) || `تاجر #${supId}`,
+          product_id: prodId,
+          product_name: productMap.get(prodId)?.name || `مطحون #${prodId}`,
+          currentStock: 0,
+          expectedStock: expected,
+          diff: -expected,
+        });
+        if (autoFix) {
+          const maxId = this.memoryCache.flour_stock.reduce((m, x) => Math.max(m, x.id), 0);
+          const newRow: FlourStock = { id: maxId + 1, supplier_id: supId, product_id: prodId, quantity: expected };
+          this.memoryCache.flour_stock.push(newRow);
+          if (this.sqliteDb) {
+            this.sqliteDb.run('INSERT INTO flour_stock (id, supplier_id, product_id, quantity) VALUES (?, ?, ?, ?)', [
+              newRow.id,
+              newRow.supplier_id,
+              newRow.product_id,
+              newRow.quantity,
+            ]);
+          }
+          fixedCount++;
+        }
+      }
+    });
+
+    if (autoFix && fixedCount > 0) {
+      this.persistSqlite();
+      this.saveMemorySnapshot();
+      await this.logAudit(
+        'تدقيق ومطابقة الأرصدة',
+        `تمت مطابقة وتصحيح ${fixedCount} سجلات مخزون مع الحسابات المحاسبية الحقيقية للسندات`,
+        currentUser
+      );
+      this.notify();
+    }
+
+    const totalGrainInOrders = Array.from(expectedGrain.values()).reduce((s, v) => s + v, 0);
+    const totalFlourInOrders = Array.from(expectedFlour.values()).reduce((s, v) => s + v, 0);
+    const totalGrainStock = this.memoryCache.grain_stock.reduce((s, g) => s + g.quantity, 0);
+    const totalFlourStock = this.memoryCache.flour_stock.reduce((s, f) => s + f.quantity, 0);
+
+    return {
+      matched: discrepancies.length === 0,
+      discrepancies,
+      totalGrainInOrders,
+      totalFlourInOrders,
+      totalGrainStock,
+      totalFlourStock,
+      fixedCount,
+    };
   }
 
   // --- Audit Logs ---
@@ -1950,6 +2327,62 @@ class MillDatabase {
     await this.logAudit('إعادة تعيين SQLite', 'تمت إعادة تعيين قاعدة البيانات SQLite إلى الحالة الافتراضية', currentUser);
     this.persistSqlite();
     this.notify();
+  }
+
+  public async clearAllData(currentUser: string, options: { keepDefaultProducts?: boolean } = { keepDefaultProducts: true }): Promise<void> {
+    const defaultProducts = options.keepDefaultProducts ? [...SEED_PRODUCTS] : [];
+
+    this.memoryCache = {
+      suppliers: [],
+      products: defaultProducts,
+      grain_stock: [],
+      flour_stock: [],
+      purchase_orders: [],
+      purchase_order_items: [],
+      milling_orders: [],
+      milling_order_items: [],
+      withdrawal_orders: [],
+      withdrawal_order_items: [],
+      audit_logs: [
+        {
+          id: 1,
+          action: 'تفريغ قاعدة البيانات',
+          details: 'تم تفريغ كافة البيانات وسجلات الحركة للبدء بقاعدة بيانات فارغة للإنتاج الفعلي.',
+          user_name: currentUser,
+          created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        },
+      ],
+    };
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run('BEGIN TRANSACTION;');
+      this.sqliteDb.run('DELETE FROM suppliers;');
+      this.sqliteDb.run('DELETE FROM products;');
+      this.sqliteDb.run('DELETE FROM grain_stock;');
+      this.sqliteDb.run('DELETE FROM flour_stock;');
+      this.sqliteDb.run('DELETE FROM purchase_orders;');
+      this.sqliteDb.run('DELETE FROM purchase_order_items;');
+      this.sqliteDb.run('DELETE FROM milling_orders;');
+      this.sqliteDb.run('DELETE FROM milling_order_items;');
+      this.sqliteDb.run('DELETE FROM withdrawal_orders;');
+      this.sqliteDb.run('DELETE FROM withdrawal_order_items;');
+      this.sqliteDb.run('DELETE FROM audit_logs;');
+
+      this.seedSqliteFromMemory(this.sqliteDb, this.memoryCache);
+      this.sqliteDb.run('COMMIT;');
+    }
+
+    this.persistSqlite();
+    this.notify();
+  }
+
+  public isDatabaseEmpty(): boolean {
+    return (
+      this.memoryCache.suppliers.length === 0 &&
+      this.memoryCache.purchase_orders.length === 0 &&
+      this.memoryCache.milling_orders.length === 0 &&
+      this.memoryCache.withdrawal_orders.length === 0
+    );
   }
 }
 
