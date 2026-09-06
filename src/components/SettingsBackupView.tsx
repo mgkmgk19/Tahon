@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
 import {
   Shield,
+  ShieldCheck,
+  ShieldAlert,
+  KeyRound,
   Download,
   Upload,
   RotateCcw,
@@ -21,12 +24,16 @@ import {
 import { UserRole, AuditLog } from '../types';
 import { millDb } from '../db/millDatabase';
 import { saveBackupToTahonaFolder, shareBackupFile } from '../utils/backupStorage';
+import { LicenseInfo } from '../services/licenseService';
 
 interface SettingsBackupViewProps {
   currentRole: UserRole;
   currentUserName: string;
   onChangeRole: (role: UserRole, name: string) => void;
   auditLogs: AuditLog[];
+  licenseInfo?: LicenseInfo;
+  onOpenLicenseModal?: () => void;
+  onRefreshLicense?: () => void;
 }
 
 export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
@@ -34,6 +41,9 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
   currentUserName,
   onChangeRole,
   auditLogs,
+  licenseInfo,
+  onOpenLicenseModal,
+  onRefreshLicense,
 }) => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -41,6 +51,7 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
   const [isSharing, setIsSharing] = useState(false);
   const [lastSavedPath, setLastSavedPath] = useState<string | null>(null);
   const [copiedPath, setCopiedPath] = useState(false);
+  const [copiedDevId, setCopiedDevId] = useState(false);
 
   const [sqlQuery, setSqlQuery] = useState('SELECT * FROM suppliers;');
   const [sqlResult, setSqlResult] = useState<{ columns: string[]; values: any[][] }[] | null>(null);
@@ -252,6 +263,95 @@ export const SettingsBackupView: React.FC<SettingsBackupViewProps> = ({
           <span>{notification.text}</span>
         </div>
       )}
+
+      {/* License & Trial Management Section */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-amber-800" />
+            <h2 className="text-base font-bold text-slate-900">نظام الترخيص والتفعيل (فترة تجريبية 3 أيام / تراخيص دائمة وسنوية)</h2>
+          </div>
+          <span
+            className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+              licenseInfo?.isLicensed
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                : licenseInfo?.isExpired
+                ? 'bg-rose-100 text-rose-800 border border-rose-200 animate-pulse'
+                : 'bg-amber-100 text-amber-800 border border-amber-200'
+            }`}
+          >
+            {licenseInfo?.statusText || 'جاري التحقق...'}
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-600 leading-relaxed">
+          يوفر النظام فترة تجريبية مجانية كاملة لمدة 3 أيام من تاريخ أول تثبيت. بعد انتهاء الـ 3 أيام، يتطلب النظام إدخال مفتاح ترخيص معتمد مشفر مربوط بمعرف جهازك دون الحاجة للاتصال بالإنترنت.
+        </p>
+
+        {/* Current Machine Status Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700">معرف هذا الجهاز (Device ID):</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (licenseInfo?.deviceId) {
+                    navigator.clipboard.writeText(licenseInfo.deviceId);
+                    setCopiedDevId(true);
+                    setTimeout(() => setCopiedDevId(false), 2000);
+                  }
+                }}
+                className="text-xs font-bold text-amber-800 hover:text-amber-900 flex items-center gap-1 cursor-pointer"
+              >
+                {copiedDevId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedDevId ? 'تم النسخ' : 'نسخ المعرف'}</span>
+              </button>
+            </div>
+            <div className="bg-white border border-slate-300 rounded-lg p-2.5 font-mono text-sm font-bold text-center text-amber-900 tracking-wider select-all">
+              {licenseInfo?.deviceId || 'MILL-XXXX-XXXX'}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              قم بإرسال هذا الرمز للمطور ليقوم بتوليد مفتاح الترخيص الخاص بك.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between space-y-3">
+            <div>
+              <span className="text-xs font-bold text-slate-700 block mb-1">تفاصيل صلاحية الاستخدام:</span>
+              <div className="text-xs text-slate-600 space-y-1">
+                <div className="flex justify-between">
+                  <span>الوضع الحالي:</span>
+                  <strong className="text-slate-900">{licenseInfo?.isLicensed ? 'مفعل ومرخص' : 'نسخة تجريبية (3 أيام)'}</strong>
+                </div>
+                {licenseInfo?.isLicensed ? (
+                  <div className="flex justify-between">
+                    <span>صلاحية الترخيص:</span>
+                    <strong className="text-emerald-700">{licenseInfo.expiresAt}</strong>
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    <span>الوقت المتبقي للتجربة:</span>
+                    <strong className={licenseInfo?.isExpired ? 'text-rose-700' : 'text-amber-700'}>
+                      {licenseInfo?.isExpired ? 'منتهية (مطلوب تفعيل)' : `${licenseInfo?.trialDaysLeft} يوم و ${licenseInfo?.trialHoursLeft} ساعة`}
+                    </strong>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={onOpenLicenseModal}
+                className="w-full py-2.5 px-3 bg-amber-800 hover:bg-amber-900 text-white rounded-lg text-xs font-bold transition shadow-xs text-center cursor-pointer"
+              >
+                {licenseInfo?.isLicensed ? 'عرض تفاصيل الترخيص' : '🔑 إدخال كود الترخيص الآن'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Role & Permissions Switcher */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">

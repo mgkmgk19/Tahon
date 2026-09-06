@@ -33,6 +33,8 @@ import { StockSuppliersView } from './components/StockSuppliersView';
 import { ReportsView } from './components/ReportsView';
 import { SettingsBackupView } from './components/SettingsBackupView';
 import { VoucherPrintModal } from './components/VoucherPrintModal';
+import { LicenseModal } from './components/LicenseModal';
+import { LicenseInfo, LicenseService } from './services/licenseService';
 
 type ActiveTab =
   | 'dashboard'
@@ -102,6 +104,29 @@ export default function App() {
     order: PurchaseOrder | MillingOrder | WithdrawalOrder;
     type: 'PO' | 'MO' | 'WO';
   } | null>(null);
+
+  // License & 3-Day Trial Management State
+  const [licenseInfo, setLicenseInfo] = useState<LicenseInfo>(() => LicenseService.checkStatus());
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+
+  const refreshLicense = () => {
+    setLicenseInfo(LicenseService.checkStatus());
+  };
+
+  useEffect(() => {
+    // Check license periodically (every 1 minute) and on window focus/tab change
+    const timer = setInterval(() => {
+      refreshLicense();
+    }, 60000);
+
+    const onFocus = () => refreshLicense();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
 
   // Load and subscribe to local SQLite database
   const refreshAllData = async () => {
@@ -218,7 +243,28 @@ export default function App() {
         }}
         theme={theme}
         onToggleTheme={toggleTheme}
+        licenseInfo={licenseInfo}
+        onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
       />
+
+      {/* 3-Day Trial Status Banner */}
+      {licenseInfo.isTrial && !licenseInfo.isLicensed && (
+        <div className="no-print bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-white px-3 sm:px-6 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-inner">
+          <div className="flex items-center gap-2">
+            <span className="bg-amber-900/60 px-2 py-0.5 rounded-full text-[10px] font-bold">نسخة تجريبية ⏳</span>
+            <span>
+              أنت تستخدم الفترة التجريبية المجانية (متبقي {licenseInfo.trialDaysLeft} يوم و {licenseInfo.trialHoursLeft} ساعة). يمكنك استخدام كافة الميزات وتفعيل الترخيص بأي وقت.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsLicenseModalOpen(true)}
+            className="px-3 py-1 bg-white text-amber-900 hover:bg-amber-50 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer mr-auto sm:mr-0"
+          >
+            🔑 تفعيل كود الترخيص
+          </button>
+        </div>
+      )}
 
       {/* Navigation Sub-Header Bar (Desktop & Mobile Friendly) */}
       <nav aria-label="شريط التنقل الرئيسي" className="no-print bg-white dark:bg-slate-900 border-b border-stone-200 dark:border-slate-800 sticky top-14 sm:top-16 z-20 shadow-2xs transition-colors duration-200">
@@ -429,9 +475,21 @@ export default function App() {
             currentUserName={currentUserName}
             onChangeRole={handleRoleChange}
             auditLogs={auditLogs}
+            licenseInfo={licenseInfo}
+            onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
+            onRefreshLicense={refreshLicense}
           />
         )}
       </main>
+
+      {/* License & 3-Day Trial Activation Modal (Unclosable/Blocking when trial has expired) */}
+      <LicenseModal
+        isOpen={isLicenseModalOpen || (licenseInfo.isExpired && !licenseInfo.isLicensed)}
+        onClose={() => setIsLicenseModalOpen(false)}
+        licenseInfo={licenseInfo}
+        onActivated={refreshLicense}
+        isBlocked={licenseInfo.isExpired && !licenseInfo.isLicensed}
+      />
 
       {/* Printable Voucher Modal */}
       {activeVoucher && (

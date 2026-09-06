@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مولد تراخيص نظام إدارة المطحنة - خاص بالمطور</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #92400e;
+      --primary-hover: #78350f;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 780px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+
+    .device-input {
+      font-family: monospace;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .radio-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .radio-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: #0f172a;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .radio-card input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .radio-card:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .radio-card .title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .radio-card .desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      transform: translateY(-1px);
+    }
+
+    .result-box {
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: 16px;
+      background: #090d16;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .key-display {
+      background: #0f172a;
+      border: 1px dashed #38bdf8;
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 900;
+      color: #38bdf8;
+      letter-spacing: 1.5px;
+      word-break: break-all;
+      margin: 12px 0;
+      user-select: all;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #fff;
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .btn-whatsapp {
+      background: #059669;
+      color: #fff;
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+
+    .btn-whatsapp:hover {
+      background: #10b981;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: bold;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      display: none;
+      z-index: 100;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 13px;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .badge-lifetime { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-annual { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .badge-trial { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    .instructions {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-badge">
+        <span>🔒 أداة المطور الرسمية</span>
+        <span>•</span>
+        <span>Offline Keygen</span>
+      </div>
+      <h1>مولد تراخيص نظام إدارة المطحنة</h1>
+      <p>توليد مفاتيح تفعيل مشفرة مربوطة بمعرف جهاز العميل بعد انتهاء الفترة التجريبية (3 أيام)</p>
+    </div>
+
+    <!-- Generator Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>🔑</span>
+        <span>بيانات ترخيص العميل الجديد</span>
+      </div>
+
+      <div class="form-group">
+        <label for="deviceId">معرف الجهاز الخاص بالعميل (Device ID) <span style="color:var(--accent)">*</span></label>
+        <input 
+          type="text" 
+          id="deviceId" 
+          class="device-input" 
+          placeholder="مثال: MILL-7A8B-9C1D-2E3F" 
+          autocomplete="off"
+          dir="ltr"
+        >
+        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">
+          يقوم العميل بنسخ هذا الرمز من شاشة "طلب التفعيل" في التطبيق وإرساله لك.
+        </small>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="clientName">اسم العميل / اسم المطحنة (اختياري)</label>
+          <input type="text" id="clientName" placeholder="مثال: مطحنة الخير والبركة">
+        </div>
+
+        <div class="form-group">
+          <label for="clientPhone">رقم هاتف العميل (لإرسال المفتاح عبر واتساب)</label>
+          <input type="tel" id="clientPhone" placeholder="مثال: 966500000000" dir="ltr">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>نوع الترخيص المطلوب</label>
+        <div class="radio-group">
+          <label class="radio-card">
+            <input type="radio" name="licenseType" value="lifetime" checked>
+            <span class="title">🏆 دائم مدى الحياة</span>
+            <span class="desc">صلاحية لا تنتهي أبداً</span>
+          </label>
+
+          <label class="radio-card">
+            <input type="radio" name="licenseType" value="annual">
+            <span class="title">📅 سنوي (1 سنة)</span>
+            <span class="desc">صلاحية لمدة 365 يوم</span>
+          </label>
+
+          <label class="radio-card">
+            <input type="radio" name="licenseType" value="trial_extension_30">
+            <span class="title">⏳ تمديد (30 يوم)</span>
+            <span class="desc">فترة تجربة ممتدة</span>
+          </label>
+
+          <label class="radio-card">
+            <input type="radio" name="licenseType" value="trial_extension_7">
+            <span class="title">⏱️ تمديد (7 أيام)</span>
+            <span class="desc">تجربة إضافية سريعة</span>
+          </label>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="generateLicense()">
+        <span>⚡</span>
+        <span>توليد كود التفعيل والترخيص</span>
+      </button>
+
+      <!-- Output Box -->
+      <div id="resultBox" class="result-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:14px; font-weight:bold; color:var(--success);">✅ تم توليد كود الترخيص بنجاح:</span>
+          <span id="resultTypeBadge" class="badge badge-lifetime">دائم مدى الحياة</span>
+        </div>
+
+        <div id="keyDisplay" class="key-display" onclick="copyKey()"></div>
+
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:14px; display:flex; justify-content:space-between;">
+          <span>تاريخ الصلاحية: <strong id="resultExpiryText" style="color:#fff;"></strong></span>
+          <span>معرف الجهاز: <strong id="resultDeviceText" style="color:#cbd5e1; font-family:monospace;"></strong></span>
+        </div>
+
+        <div class="action-row">
+          <button type="button" class="btn btn-secondary" onclick="copyKey()">
+            <span>📋</span>
+            <span>نسخ كود الترخيص</span>
+          </button>
+
+          <button type="button" class="btn btn-whatsapp" onclick="sendWhatsApp()">
+            <span>💬</span>
+            <span>إرسال للعميل عبر واتساب</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verifier Tool -->
+    <div class="card">
+      <div class="card-title">
+        <span>🔍</span>
+        <span>فاحص والتحقق من صحة الأكواد (License Verifier)</span>
+      </div>
+      <div class="form-group">
+        <label>كود الترخيص المراد فحصه</label>
+        <input type="text" id="verifyKeyInput" placeholder="الصق كود الترخيص هنا..." dir="ltr" class="device-input">
+      </div>
+      <div class="form-group">
+        <label>معرف الجهاز المقترن به</label>
+        <input type="text" id="verifyDeviceInput" placeholder="معرف الجهاز..." dir="ltr" class="device-input">
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="verifyTestKey()">
+        <span>فحص صحة الكود وصلاحيته</span>
+      </button>
+      <div id="verifyResult" style="margin-top:12px; font-size:13px; font-weight:bold; display:none;"></div>
+    </div>
+
+    <!-- Instructions for Developer -->
+    <div class="instructions">
+      <strong style="color:#fff; display:block; margin-bottom:6px;">📌 تعليمات الاستخدام للمطور:</strong>
+      1. عندما تنتهي الـ 3 أيام التجريبية، سيظهر للعميل في التطبيق شاشة تطلب التفعيل مع "معرف الجهاز" وزر إرساله عبر واتساب.<br>
+      2. انسخ "معرف الجهاز" من رسالة العميل وضعه في خانة المعرف أعلاه.<br>
+      3. اختر نوع الترخيص (دائم أو سنوي أو تمديد)، ثم اضغط على "توليد كود التفعيل".<br>
+      4. اضغط "إرسال للعميل عبر واتساب" أو انسخ الكود وأرسله له.<br>
+      5. يقوم العميل بلصق الكود في خانة التفعيل ببرنامجه ليعمل فوراً وبشكل دائم دون الحاجة لأي اتصال بالإنترنت!
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">تم النسخ إلى الحافظة بنجاح!</div>
+
+  <script>
+    const DEVELOPER_SALT = 'MILL_GRAIN_SECURE_SALT_v1_2026_PROD';
+
+    // SHA-256 Pure Implementation
+    function sha256(ascii) {
+      function rightRotate(value, amount) {
+        return (value >>> amount) | (value << (32 - amount));
+      }
+      var mathPow = Math.pow;
+      var maxWord = mathPow(2, 32);
+      var result = '';
+      var words = [];
+      var asciiBitLength = ascii.length * 8;
+      var hash = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+      ];
+      var k = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+      ];
+
+      var i, j;
+      for (i = 0; i < ascii.length; i++) {
+        words[i >> 2] |= (ascii.charCodeAt(i) & 0xff) << (24 - (i % 4) * 8);
+      }
+      words[asciiBitLength >> 5] |= 0x80 << (24 - (asciiBitLength % 32));
+      words[(((asciiBitLength + 64) >> 9) << 4) + 15] = asciiBitLength;
+
+      for (i = 0; i < words.length; i += 16) {
+        var w = words.slice(i, i + 16);
+        var oldHash = hash.slice(0);
+        for (j = 0; j < 64; j++) {
+          var w15 = w[j - 15], w2 = w[j - 2];
+          var s0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
+          var s1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
+          w[j] = j < 16 ? (w[j] | 0) : ((w[j - 16] + s0 + w[j - 7] + s1) | 0);
+
+          var s1_maj = rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25);
+          var ch = (hash[4] & hash[5]) ^ (~hash[4] & hash[6]);
+          var temp1 = (hash[7] + s1_maj + ch + k[j] + w[j]) | 0;
+          var s0_maj = rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22);
+          var maj = (hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]);
+          var temp2 = (s0_maj + maj) | 0;
+
+          hash[7] = hash[6];
+          hash[6] = hash[5];
+          hash[5] = hash[4];
+          hash[4] = (hash[3] + temp1) | 0;
+          hash[3] = hash[2];
+          hash[2] = hash[1];
+          hash[1] = hash[0];
+          hash[0] = (temp1 + temp2) | 0;
+        }
+        for (j = 0; j < 8; j++) {
+          hash[j] = (hash[j] + oldHash[j]) | 0;
+        }
+      }
+
+      for (i = 0; i < 8; i++) {
+        for (j = 3; j >= 0; j--) {
+          var b = (hash[i] >> (j * 8)) & 255;
+          result += (b < 16 ? '0' : '') + b.toString(16);
+        }
+      }
+      return result;
+    }
+
+    function generateSignature(cleanId, type, expiry) {
+      var raw = cleanId + '|' + type + '|' + expiry + '|' + DEVELOPER_SALT;
+      var hash = sha256(raw).toUpperCase();
+      var part1 = hash.substring(0, 4);
+      var part2 = hash.substring(8, 12);
+      var part3 = hash.substring(16, 20);
+      return part1 + '-' + part2 + '-' + part3;
+    }
+
+    var currentGeneratedKey = '';
+    var currentClientName = '';
+    var currentClientPhone = '';
+    var currentDeviceId = '';
+    var currentExpiresText = '';
+
+    function generateLicense() {
+      var deviceIdInput = document.getElementById('deviceId');
+      var rawId = deviceIdInput.value.trim().toUpperCase();
+
+      if (!rawId) {
+        alert('الرجاء إدخال معرف جهاز العميل أولاً!');
+        deviceIdInput.focus();
+        return;
+      }
+
+      var clientName = document.getElementById('clientName').value.trim();
+      var clientPhone = document.getElementById('clientPhone').value.trim();
+      var selectedType = document.querySelector('input[name="licenseType"]:checked').value;
+
+      var expiry = 0;
+      var typeCode = 'LFT';
+      var typeBadgeClass = 'badge-lifetime';
+      var typeText = 'دائم مدى الحياة';
+      var expiresText = 'مدى الحياة (بدون انتهاء)';
+
+      var now = Date.now();
+      if (selectedType === 'annual') {
+        typeCode = 'YR1';
+        typeBadgeClass = 'badge-annual';
+        typeText = 'سنوي (1 سنة)';
+        expiry = now + (365 * 24 * 60 * 60 * 1000);
+        expiresText = new Date(expiry).toLocaleDateString('ar-SA') + ' (سنة كاملة)';
+      } else if (selectedType === 'trial_extension_30') {
+        typeCode = 'T30';
+        typeBadgeClass = 'badge-trial';
+        typeText = 'تمديد تجريبي (30 يوم)';
+        expiry = now + (30 * 24 * 60 * 60 * 1000);
+        expiresText = new Date(expiry).toLocaleDateString('ar-SA') + ' (30 يوماً)';
+      } else if (selectedType === 'trial_extension_7') {
+        typeCode = 'T07';
+        typeBadgeClass = 'badge-trial';
+        typeText = 'تمديد تجريبي (7 أيام)';
+        expiry = now + (7 * 24 * 60 * 60 * 1000);
+        expiresText = new Date(expiry).toLocaleDateString('ar-SA') + ' (7 أيام)';
+      }
+
+      var idParts = rawId.split('-');
+      var idSnippet = idParts.length >= 2 ? idParts[1] : 'DEV';
+
+      var signature = generateSignature(rawId, selectedType, expiry);
+      var expCode = expiry === 0 ? 'PERM' : expiry.toString(36).toUpperCase();
+
+      var finalKey = 'MILL-' + typeCode + '-' + idSnippet + '-' + expCode + '-' + signature;
+
+      currentGeneratedKey = finalKey;
+      currentClientName = clientName;
+      currentClientPhone = clientPhone;
+      currentDeviceId = rawId;
+      currentExpiresText = expiresText;
+
+      // Update UI
+      document.getElementById('keyDisplay').innerText = finalKey;
+      document.getElementById('resultDeviceText').innerText = rawId;
+      document.getElementById('resultExpiryText').innerText = expiresText;
+
+      var badge = document.getElementById('resultTypeBadge');
+      badge.className = 'badge ' + typeBadgeClass;
+      badge.innerText = typeText;
+
+      document.getElementById('resultBox').style.display = 'block';
+      document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function copyKey() {
+      if (!currentGeneratedKey) return;
+      navigator.clipboard.writeText(currentGeneratedKey).then(function() {
+        showToast('تم نسخ كود الترخيص بنجاح!');
+      }).catch(function() {
+        showToast('انسخ الكود يدوياً من المربع');
+      });
+    }
+
+    function sendWhatsApp() {
+      if (!currentGeneratedKey) return;
+
+      var greeting = currentClientName ? 'عزيزنا ' + currentClientName + '،' : 'مرحباً بك،';
+      var text = greeting + '\n\n' +
+        'إليك كود تفعيل نظام إدارة محل وطاحونة الحبوب:\n\n' +
+        '🔑 كود الترخيص:\n' + currentGeneratedKey + '\n\n' +
+        '📱 معرف الجهاز المعتمد:\n' + currentDeviceId + '\n' +
+        '⏳ مدة الصلاحية: ' + currentExpiresText + '\n\n' +
+        'طريقة التفعيل:\n' +
+        '1. افتح تطبيق المطحنة.\n' +
+        '2. الصق الكود في نافذة التفعيل واضغط "تفعيل الترخيص".\n' +
+        'سيعمل النظام معك فوراً ومحلياً.';
+
+      var encoded = encodeURIComponent(text);
+      var phone = currentClientPhone.replace(/[^0-9]/g, '');
+      var url = phone ? 'https://wa.me/' + phone + '?text=' + encoded : 'https://api.whatsapp.com/send?text=' + encoded;
+      window.open(url, '_blank');
+    }
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(function() {
+        t.style.display = 'none';
+      }, 2500);
+    }
+
+    function verifyTestKey() {
+      var key = document.getElementById('verifyKeyInput').value.trim().toUpperCase();
+      var devId = document.getElementById('verifyDeviceInput').value.trim().toUpperCase();
+      var resEl = document.getElementById('verifyResult');
+
+      if (!key || !devId) {
+        resEl.style.display = 'block';
+        resEl.style.color = '#ef4444';
+        resEl.innerText = 'الرجاء إدخال الكود ومعرف الجهاز معاً للفحص';
+        return;
+      }
+
+      var parts = key.split('-');
+      if (parts.length !== 7 || parts[0] !== 'MILL') {
+        resEl.style.display = 'block';
+        resEl.style.color = '#ef4444';
+        resEl.innerText = 'صيغة الكود غير صالحة (يجب أن يبدأ بـ MILL ويحتوي على 7 مقاطع)';
+        return;
+      }
+
+      var typeCode = parts[1];
+      var expCode = parts[3];
+      var signature = parts[4] + '-' + parts[5] + '-' + parts[6];
+
+      var type = 'lifetime';
+      if (typeCode === 'LFT') type = 'lifetime';
+      else if (typeCode === 'YR1') type = 'annual';
+      else if (typeCode === 'T30') type = 'trial_extension_30';
+      else if (typeCode === 'T07') type = 'trial_extension_7';
+
+      var expiry = 0;
+      if (expCode !== 'PERM') {
+        expiry = parseInt(expCode, 36);
+      }
+
+      var expectedSig = generateSignature(devId, type, expiry);
+
+      resEl.style.display = 'block';
+      if (expectedSig === signature) {
+        if (expiry > 0 && Date.now() > expiry) {
+          resEl.style.color = '#f59e0b';
+          resEl.innerText = '⚠️ التوقيع صحيح للجهاز ولكن الترخيص منتهي الصلاحية!';
+        } else {
+          resEl.style.color = '#10b981';
+          resEl.innerText = '✅ الكود سليم 100% ومطابق تماماً لهذا الجهاز (' + type + ')';
+        }
+      } else {
+        resEl.style.color = '#ef4444';
+        resEl.innerText = '❌ كود غير صحيح أو غير مخصص لهذا الجهاز!';
+      }
+    }
+  </script>
+</body>
+</html>

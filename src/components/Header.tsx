@@ -2,13 +2,16 @@ import React from 'react';
 import { PWAInstallButton } from './PWAInstallButton';
 import { OfflineIndicator } from './OfflineIndicator';
 import { UserRole } from '../types';
-import { UserCheck, Sun, Moon } from 'lucide-react';
+import { UserCheck, Sun, Moon, ShieldCheck, Clock, ShieldAlert } from 'lucide-react';
+import { LicenseInfo } from '../services/licenseService';
 
 interface HeaderProps {
   currentRole: UserRole;
   onRoleChange?: (role: UserRole) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  licenseInfo?: LicenseInfo;
+  onOpenLicenseModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +19,8 @@ export const Header: React.FC<HeaderProps> = ({
   onRoleChange,
   theme,
   onToggleTheme,
+  licenseInfo,
+  onOpenLicenseModal,
 }) => {
   return (
     <header className="no-print bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs transition-colors duration-200">
@@ -48,6 +53,39 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {/* Offline local indicator */}
           <OfflineIndicator />
+
+          {/* License Status Badge Button */}
+          {licenseInfo && onOpenLicenseModal && (
+            <button
+              type="button"
+              onClick={onOpenLicenseModal}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
+                licenseInfo.isLicensed
+                  ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900'
+                  : licenseInfo.isExpired
+                  ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 border border-rose-300 dark:border-rose-800 hover:bg-rose-200 dark:hover:bg-rose-900 animate-pulse'
+                  : 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 dark:hover:bg-amber-900'
+              }`}
+              title="معلومات وتفعيل الترخيص"
+            >
+              {licenseInfo.isLicensed ? (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>مرخص</span>
+                </>
+              ) : licenseInfo.isExpired ? (
+                <>
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                  <span>انتهت التجربة (تفعيل)</span>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>تجريبي ({licenseInfo.trialDaysLeft}د {licenseInfo.trialHoursLeft}س)</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* User Role Switcher */}
           {onRoleChange && (
