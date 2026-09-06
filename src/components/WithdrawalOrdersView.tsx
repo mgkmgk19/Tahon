@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Supplier, Product, WithdrawalOrder, UserRole, FlourStock } from '../types';
 import { millDb } from '../db/millDatabase';
+import { VoiceInputButton } from './VoiceInputButton';
 
 interface WithdrawalOrdersViewProps {
   orders: WithdrawalOrder[];
@@ -357,8 +358,17 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
             placeholder="بحث برقم السند (WO-...) أو رقم الفاتورة أو المستلم أو التاجر..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-3 pr-9 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+            className="w-full pl-10 pr-9 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+            id="input-wo-search"
           />
+          <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
+            <VoiceInputButton
+              onTranscript={(txt) => setSearchTerm(txt)}
+              currentValue={searchTerm}
+              title="البحث الصوتي في أذونات الصرف"
+              id="btn-voice-wo-search"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -679,11 +689,21 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ملاحظات إضافية (اختياري)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">ملاحظات إضافية (اختياري)</label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setNotes((prev) => (prev ? `${prev} ${txt}` : txt))}
+                    currentValue={notes}
+                    appendMode
+                    size="sm"
+                    title="إملاء ملاحظات الصرف بالصوت"
+                    id="btn-voice-wo-notes"
+                  />
+                </div>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="رقم لوحة الشاحنة، مستند التسليم الورقي..."
+                  placeholder="رقم لوحة الشاحنة، مستند التسليم الورقي (أو تكلّم بالصوت)..."
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
@@ -919,11 +939,21 @@ export const WithdrawalOrdersView: React.FC<WithdrawalOrdersViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ملاحظات التعديل</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">ملاحظات التعديل</label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setEditNotes((prev) => (prev ? `${prev} ${txt}` : txt))}
+                    currentValue={editNotes}
+                    appendMode
+                    size="sm"
+                    title="إملاء ملاحظات التعديل بالصوت"
+                    id="btn-voice-wo-edit-notes"
+                  />
+                </div>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="سبب التعديل..."
+                  placeholder="سبب التعديل (أو تكلّم بالصوت)..."
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                 />

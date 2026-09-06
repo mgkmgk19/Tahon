@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Supplier, Product, PurchaseOrder, UserRole } from '../types';
 import { millDb } from '../db/millDatabase';
+import { VoiceInputButton } from './VoiceInputButton';
 
 interface PurchaseOrdersViewProps {
   orders: PurchaseOrder[];
@@ -275,8 +276,17 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
             placeholder="بحث برقم السند (PO-...) أو اسم التاجر..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-3 pr-9 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+            className="w-full pl-10 pr-9 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+            id="input-po-search"
           />
+          <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
+            <VoiceInputButton
+              onTranscript={(txt) => setSearchTerm(txt)}
+              currentValue={searchTerm}
+              title="البحث الصوتي في أذونات التوريد"
+              id="btn-voice-po-search"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -534,11 +544,21 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ملاحظات (اختياري)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">ملاحظات (اختياري)</label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setNotes((prev) => (prev ? `${prev} ${txt}` : txt))}
+                    currentValue={notes}
+                    appendMode
+                    size="sm"
+                    title="إملاء الملاحظات بالصوت"
+                    id="btn-voice-po-notes"
+                  />
+                </div>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="أي تفاصيل عن حالة الحبوب أو وسيلة النقل..."
+                  placeholder="أي تفاصيل عن حالة الحبوب أو وسيلة النقل (أو تكلّم بالصوت)..."
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
                 />
@@ -715,11 +735,21 @@ export const PurchaseOrdersView: React.FC<PurchaseOrdersViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ملاحظات التعديل</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">ملاحظات التعديل</label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setEditNotes((prev) => (prev ? `${prev} ${txt}` : txt))}
+                    currentValue={editNotes}
+                    appendMode
+                    size="sm"
+                    title="إملاء ملاحظات التعديل بالصوت"
+                    id="btn-voice-po-edit-notes"
+                  />
+                </div>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="سبب التعديل أو أي تفاصيل إضافية..."
+                  placeholder="سبب التعديل أو أي تفاصيل إضافية (أو تكلّم بالصوت)..."
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                 />

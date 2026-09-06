@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Supplier, Product, MillingOrder, UserRole, GrainStock } from '../types';
 import { millDb } from '../db/millDatabase';
+import { VoiceInputButton } from './VoiceInputButton';
 
 interface MillingOrdersViewProps {
   orders: MillingOrder[];
@@ -402,8 +403,17 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
             placeholder="بحث برقم إذن الطحن (MO-...) أو اسم التاجر..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-3 pr-9 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+            className="w-full pl-10 pr-9 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+            id="input-mo-search"
           />
+          <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
+            <VoiceInputButton
+              onTranscript={(txt) => setSearchTerm(txt)}
+              currentValue={searchTerm}
+              title="البحث الصوتي في أذونات الطحن"
+              id="btn-voice-mo-search"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -756,21 +766,31 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  {hasAnyDeficit ? (
-                    <span className="text-rose-800 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      <span>مبرر وتوضيح مديونية الأصناف (إلزامي بسبب السحب بالسالب) *</span>
-                    </span>
-                  ) : (
-                    <span>ملاحظات إضافية (اختياري)</span>
-                  )}
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    {hasAnyDeficit ? (
+                      <span className="text-rose-800 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>مبرر وتوضيح مديونية الأصناف (إلزامي بسبب السحب بالسالب) *</span>
+                      </span>
+                    ) : (
+                      <span>ملاحظات إضافية (اختياري)</span>
+                    )}
+                  </label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setNotes((prev) => (prev ? `${prev} ${txt}` : txt))}
+                    currentValue={notes}
+                    appendMode
+                    size="sm"
+                    title="إملاء ملاحظات الطحن بالصوت"
+                    id="btn-voice-mo-notes"
+                  />
+                </div>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  placeholder={hasAnyDeficit ? 'سبب السحب بالسالب والموافقة عليه...' : 'ملاحظات الطاحونة...'}
+                  placeholder={hasAnyDeficit ? 'سبب السحب بالسالب والموافقة عليه (أو تكلّم بالصوت)...' : 'ملاحظات الطاحونة (أو تكلّم بالصوت)...'}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                   required={hasAnyDeficit}
                 />
@@ -998,11 +1018,21 @@ export const MillingOrdersView: React.FC<MillingOrdersViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ملاحظات التعديل والتوضيح</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">ملاحظات التعديل والتوضيح</label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setEditNotes((prev) => (prev ? `${prev} ${txt}` : txt))}
+                    currentValue={editNotes}
+                    appendMode
+                    size="sm"
+                    title="إملاء ملاحظات التعديل بالصوت"
+                    id="btn-voice-mo-edit-notes"
+                  />
+                </div>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="سبب التعديل أو ملاحظات التشغيل..."
+                  placeholder="سبب التعديل أو ملاحظات التشغيل (أو تكلّم بالصوت)..."
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                 />

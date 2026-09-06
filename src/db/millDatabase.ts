@@ -18,6 +18,7 @@ import {
   WithdrawalOrderItem,
   AuditLog,
   StockSummaryRow,
+  CommandKeyword,
 } from '../types';
 
 async function fetchVerifiedWasmBinary(): Promise<ArrayBuffer | null> {
@@ -56,6 +57,7 @@ interface DBSchema {
   withdrawal_orders: WithdrawalOrder[];
   withdrawal_order_items: WithdrawalOrderItem[];
   audit_logs: AuditLog[];
+  command_keywords: CommandKeyword[];
 }
 
 const SEED_SUPPLIERS: Supplier[] = [
@@ -104,6 +106,345 @@ const SEED_AUDIT_LOGS: AuditLog[] = [
     details: 'تم تجهيز قاعدة بيانات SQLite المحلية الفورية وإنشاء الجداول وتعيين الأرصدة الافتتاحية بنجاح.',
     user_name: 'مدير النظام',
     created_at: '2026-09-01 08:00:00',
+  },
+];
+
+export const SEED_COMMAND_KEYWORDS: CommandKeyword[] = [
+  {
+    id: 1,
+    command_key: 'NEW_PURCHASE_ORDER',
+    command_title: 'إنشاء أمر توريد قمح جديد',
+    command_description: 'فتح نموذج تسجيل وتوريد شحنة قمح أو حبوب واردة جديدة وإضافتها لرصيد التاجر في المخزون',
+    category: 'الحركات والعمليات',
+    keywords: 'توريد، أمر توريد، امر توريد، استلام قمح، وارد، قمح وارد، تسجيل توريد، استلام حبوب، استلام شحنة، فاتورة توريد، وزن القمح، إضافة توريد، حبوب واردة، استلام سيارة قمح، توريد جديد',
+    action_type: 'modal',
+    action_payload: 'NEW_PO',
+    icon: 'ArrowDownLeft',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 2,
+    command_key: 'NEW_MILLING_ORDER',
+    command_title: 'إنشاء أمر طحن وتحويل جديد',
+    command_description: 'فتح نموذج تشغيل الطاحونة وتحويل الحبوب إلى دقيق ونخالة وسميد مع تحديث الأرصدة تلقائياً',
+    category: 'الحركات والعمليات',
+    keywords: 'طحن، أمر طحن، امر طحن، تشغيل الطاحونة، تحويل قمح، طحن جديد، انتاج دقيق، طحن شعير، امر تشغيل، تشغيل المطحنة، سحق الحبوب، استخراج الدقيق، نخالة وسميد، طحن الحبوب',
+    action_type: 'modal',
+    action_payload: 'NEW_MO',
+    icon: 'RefreshCw',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 3,
+    command_key: 'NEW_WITHDRAWAL_ORDER',
+    command_title: 'إنشاء أمر صرف وتسليم منتجات',
+    command_description: 'فتح نموذج تسليم أكياس الدقيق أو النخالة للتاجر مع توثيق اسم المستلم ورقم الفاتورة المرجعية',
+    category: 'الحركات والعمليات',
+    keywords: 'صرف، أمر صرف، امر صرف، تسليم، تسليم دقيق، خروج بضاعة، صرف منتجات، امر تسليم، فاتورة صرف، تسليم تاجر، صرف نخالة، تسليم سميد، سند صرف، اخراج أكياس، تسليم شحنة',
+    action_type: 'modal',
+    action_payload: 'NEW_WO',
+    icon: 'ArrowUpRight',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 4,
+    command_key: 'NEW_SUPPLIER',
+    command_title: 'تسجيل تاجر أو مورد جديد',
+    command_description: 'فتح نموذج تسجيل تاجر جديد وإدخال بياناته ورقم هاتفه وعنوانه لربطه بحركات التوريد والصرف',
+    category: 'التجار والأصناف',
+    keywords: 'تاجر جديد، إضافة تاجر، اضافة تاجر، تسجيل تاجر، عميل جديد، مورد جديد، فتح حساب تاجر، إضافة مورد، ادخال تاجر، موردين، بطاقة تاجر، تعريف تاجر',
+    action_type: 'modal',
+    action_payload: 'NEW_SUPPLIER',
+    icon: 'UserPlus',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 5,
+    command_key: 'NEW_PRODUCT',
+    command_title: 'إضافة صنف حبوب أو مطحون جديد',
+    command_description: 'تعريف صنف جديد من الحبوب الخام (مثل قمح بلدي، قمح كندي) أو المنتجات المطحونة (دقيق فاخر، نخالة)',
+    category: 'التجار والأصناف',
+    keywords: 'صنف جديد، إضافة صنف، اضافة منتج، منتج جديد، نوع قمح جديد، صنف دقيق، تعريف منتج، حبوب جديدة، دقيق جديد، نوع طحين',
+    action_type: 'modal',
+    action_payload: 'NEW_PRODUCT',
+    icon: 'PackagePlus',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 6,
+    command_key: 'NAV_DASHBOARD',
+    command_title: 'الانتقال للوحة التحكم والمؤشرات',
+    command_description: 'عرض الشاشة الرئيسية والإحصائيات الإجمالية للمخزون ومعدلات الطحن والتوريدات اليومية',
+    category: 'التنقل والواجهات',
+    keywords: 'الرئيسية، لوحة التحكم، المؤشرات، الشاشة الرئيسية، احصائيات، الداشبورد، ملخص اليوم، الرئيسية للمطحنة، نظرة عامة، الإحصائيات',
+    action_type: 'navigation',
+    action_payload: 'dashboard',
+    icon: 'LayoutDashboard',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 7,
+    command_key: 'NAV_PURCHASE_ORDERS',
+    command_title: 'استعراض سجل أوامر التوريد',
+    command_description: 'الانتقال إلى جدول شحنات القمح الواردة وتفاصيل التوريدات والبحث والطباعة',
+    category: 'التنقل والواجهات',
+    keywords: 'اوامر التوريد، سجل التوريد، قائمة التوريد، شحنات القمح، الواردات، استعراض التوريد، جدول التوريد، فواتير التوريد، توريدات سابقة',
+    action_type: 'navigation',
+    action_payload: 'purchase_orders',
+    icon: 'ArrowDownLeft',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 8,
+    command_key: 'NAV_MILLING_ORDERS',
+    command_title: 'استعراض سجل أوامر الطحن والإنتاج',
+    command_description: 'الانتقال إلى جدول عمليات الطحن والتحويل واستعراض نسب الاستخراج ومعادلات الحبوب',
+    category: 'التنقل والواجهات',
+    keywords: 'اوامر الطحن، سجل الطحن، عمليات الطحن، قائمة الطحن، انتاج المطحنة، جدول الطحن، استعراض الطحن، طحنات سابقة، تقرير الطحن',
+    action_type: 'navigation',
+    action_payload: 'milling_orders',
+    icon: 'RefreshCw',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 9,
+    command_key: 'NAV_WITHDRAWAL_ORDERS',
+    command_title: 'استعراض سجل أوامر الصرف والتسليم',
+    command_description: 'الانتقال إلى جدول البضائع المنصرفة وفواتير التسليم وأسماء المستلمين',
+    category: 'التنقل والواجهات',
+    keywords: 'اوامر الصرف، سجل الصرف، المنصرفات، قائمة التسليم، فواتير الصرف، جدول الصرف، اذونات الصرف، تسليمات سابقة',
+    action_type: 'navigation',
+    action_payload: 'withdrawal_orders',
+    icon: 'ArrowUpRight',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 10,
+    command_key: 'NAV_STOCK_SUPPLIERS',
+    command_title: 'إدارة المخزون والتجار والأصناف',
+    command_description: 'عرض بطاقات التجار وأرصدة القمح والدقيق لكل تاجر وإدارة الأصناف',
+    category: 'التنقل والواجهات',
+    keywords: 'المخزون، التجار، قائمة التجار، جرد المخزون، الاصناف، ارصدة الحبوب، ارصدة الدقيق، رصيد تاجر، مستودع المطحنة، مستودع الحبوب',
+    action_type: 'navigation',
+    action_payload: 'stock_suppliers',
+    icon: 'Boxes',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 11,
+    command_key: 'NAV_REPORTS',
+    command_title: 'التقارير الشاملة وكشوف الحسابات',
+    command_description: 'استخراج كشف حساب تفصيلي للتاجر وميزان الحبوب والدقيق وطباعة التقارير الرسمية',
+    category: 'التقارير والطباعة',
+    keywords: 'التقارير، كشف حساب، تقرير شامل، تقرير التاجر، كشف تاجر، ميزان الحبوب، تقرير انتاج، طباعة كشف، كشوفات، تقرير عام',
+    action_type: 'navigation',
+    action_payload: 'reports',
+    icon: 'FileText',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 12,
+    command_key: 'NAV_SETTINGS',
+    command_title: 'الإعدادات والنسخ الاحتياطي والصلاحيات',
+    command_description: 'إدارة مجلد النسخ الاحتياطي TAHON والصلاحيات وسجل التدقيق الأمني',
+    category: 'إدارة النظام',
+    keywords: 'الاعدادات، نسخ احتياطي، تصدير البيانات، استعادة نسخة، الصلاحيات، سجل العمليات، التدقيق، باك اب، اعدادات النظام',
+    action_type: 'navigation',
+    action_payload: 'settings',
+    icon: 'Settings',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 13,
+    command_key: 'NAV_COMMANDS',
+    command_title: 'جدول نصوص الأوامر والكلمات المفتاحية',
+    command_description: 'صفحة استعراض الأوامر الثابتة وتخصيص الكلمات والنصوص المفتاحية التي تفتح كل أمر',
+    category: 'إدارة النظام',
+    keywords: 'الاوامر السريعة، جدول الاوامر، نصوص الاوامر، الكلمات المفتاحية، تخصيص الاوامر، قاموس الاوامر، اضافة نصوص، كلمات سرية، اوامر صوتية',
+    action_type: 'navigation',
+    action_payload: 'command_keywords',
+    icon: 'Terminal',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 14,
+    command_key: 'REPORT_SUPPLIER_STATEMENT',
+    command_title: 'استخراج كشف حساب تاجر',
+    command_description: 'فتح شاشة التقارير وتحديد كشف حساب التاجر التفصيلي بكافة حركات التوريد والطحن والصرف',
+    category: 'التقارير والطباعة',
+    keywords: 'كشف حساب تاجر، حساب تاجر، كشف التاجر، حركات التاجر، رصيد تاجر مفصل، تقرير التاجر، كشف حركة عميل، حسابات التجار',
+    action_type: 'action',
+    action_payload: 'REPORT_SUPPLIER',
+    icon: 'FileSpreadsheet',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 15,
+    command_key: 'REPORT_GRAIN_BALANCE',
+    command_title: 'جرد وميزان مخزون الحبوب (القمح والشعير)',
+    command_description: 'استعراض ميزان الحبوب الخام الواردة والمطحونة والمتبقية في صوامع ومخازن المطحنة',
+    category: 'التقارير والطباعة',
+    keywords: 'جرد الحبوب، ميزان القمح، رصيد القمح، جرد القمح، كمية الحبوب، كم قمح، مخزون الحبوب، اجمالي القمح، صوامع القمح، ميزان الحبوب',
+    action_type: 'action',
+    action_payload: 'REPORT_GRAIN',
+    icon: 'Wheat',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 16,
+    command_key: 'REPORT_FLOUR_BALANCE',
+    command_title: 'جرد وميزان منتجات الطاحونة (الدقيق والنخالة)',
+    command_description: 'استعراض ميزان الدقيق والنخالة والسميد المنتجة والمسلمة والمتبقية في مستودع الطاحونة',
+    category: 'التقارير والطباعة',
+    keywords: 'جرد الدقيق، ميزان الدقيق، رصيد الدقيق، كم دقيق، مخزون المطحون، كمية النخالة، جرد النخالة، اجمالي الدقيق، مستودع الدقيق',
+    action_type: 'action',
+    action_payload: 'REPORT_FLOUR',
+    icon: 'Layers',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 17,
+    command_key: 'ACTION_BACKUP_NOW',
+    command_title: 'حفظ نسخة احتياطية فورية (مجلد TAHON)',
+    command_description: 'حفظ ملف SQLite محلي كامل لقاعدة البيانات في مجلد المستندات TAHON أو التنزيلات',
+    category: 'إدارة النظام',
+    keywords: 'نسخة فورية، حفظ احتياطي، باك اب، backup، حفظ قاعدة البيانات، تصدير فوري، حفظ النسخة، مجلد طاحون، نسخة TAHON، حفظ محلي',
+    action_type: 'action',
+    action_payload: 'BACKUP_NOW',
+    icon: 'Download',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 18,
+    command_key: 'ACTION_SHARE_BACKUP',
+    command_title: 'مشاركة ملف قاعدة البيانات والنسخة الاحتياطية',
+    command_description: 'إرسال ومشاركة ملف قاعدة البيانات SQLite عبر تطبيقات الهاتف (واتساب، تيليجرام، قوقل درايف)',
+    category: 'إدارة النظام',
+    keywords: 'مشاركة النسخة، مشاركة البيانات، ارسال واتساب، مشاركة قاعدة البيانات، share backup، ارسال ملف، نسخ لقوقل درايف، تصدير ومشاركة',
+    action_type: 'action',
+    action_payload: 'SHARE_BACKUP',
+    icon: 'Share2',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 19,
+    command_key: 'ACTION_TOGGLE_THEME',
+    command_title: 'تبديل المظهر (ليلي / نهاري)',
+    command_description: 'التبديل بين الوضع الداكن المريح للعين والوضع الفاتح للنظام بنقرة واحدة',
+    category: 'إدارة النظام',
+    keywords: 'الوضع الليلي، دارك مود، الوضع الداكن، وضع النهار، ستايل، تغيير الثيم، انارة، تبديل الالوان، ليلي، نهاري، مظهر التطبيق',
+    action_type: 'action',
+    action_payload: 'TOGGLE_THEME',
+    icon: 'Moon',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 20,
+    command_key: 'ACTION_OPEN_LICENSE',
+    command_title: 'عرض تفاصيل الترخيص والتفعيل',
+    command_description: 'فتح نافذة حالة الترخيص ومعرف الجهاز وإدخال كود التفعيل المعتمد للمطحنة أو متابعة فترة التجربة',
+    category: 'إدارة النظام',
+    keywords: 'ترخيص، تفعيل، كود التفعيل، مفتاح الترخيص، معرف الجهاز، device id، رخصة البرنامج، تفعيل النظام، فترة التجربة، مدة التجربة',
+    action_type: 'action',
+    action_payload: 'OPEN_LICENSE',
+    icon: 'KeyRound',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 21,
+    command_key: 'ACTION_ROLE_ADMIN',
+    command_title: 'التبديل إلى دور مدير النظام (Admin)',
+    command_description: 'تفعيل صلاحيات الإدارة الكاملة للعمليات والمخزون والتجار والتقارير والنسخ الاحتياطي',
+    category: 'الصلاحيات والمستخدمين',
+    keywords: 'صلاحية مدير، حساب المدير، تحويل لمدير، ادمن، admin، المدير المشرف، دخول المدير، صلاحيات كاملة، إدارة المطحنة',
+    action_type: 'action',
+    action_payload: 'ROLE_ADMIN',
+    icon: 'ShieldCheck',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 22,
+    command_key: 'ACTION_ROLE_EMPLOYEE',
+    command_title: 'التبديل إلى دور موظف الاستقبال',
+    command_description: 'تفعيل صلاحيات إدخال أوامر التوريد والطحن والصرف وطباعة السندات اليومية',
+    category: 'الصلاحيات والمستخدمين',
+    keywords: 'صلاحية موظف، حساب الموظف، موظف الاستقبال، استقبال، كاشير، مدخل بيانات، موظف، تبديل لموظف',
+    action_type: 'action',
+    action_payload: 'ROLE_EMPLOYEE',
+    icon: 'User',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 23,
+    command_key: 'ACTION_ROLE_ACCOUNTANT',
+    command_title: 'التبديل إلى دور المحاسب',
+    command_description: 'تفعيل صلاحيات استعراض وطباعة كافة التقارير الشاملة وكشوف الحسابات والموازين',
+    category: 'الصلاحيات والمستخدمين',
+    keywords: 'صلاحية محاسب، حساب المحاسب، مالية، تدقيق مالي، المحاسب، حسابات، مدقق، تبديل لمحاسب',
+    action_type: 'action',
+    action_payload: 'ROLE_ACCOUNTANT',
+    icon: 'Calculator',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
+  },
+  {
+    id: 24,
+    command_key: 'ACTION_REFRESH_DATA',
+    command_title: 'تحديث ومزامنة البيانات الفورية',
+    command_description: 'إعادة قراءة وتحديث أرصدة الحبوب والدقيق وسجلات العمليات من قاعدة بيانات SQLite المحلية',
+    category: 'إدارة النظام',
+    keywords: 'تحديث، ريفرش، اعادة تحميل، مزامنة، تحديث الشاشة، refresh، تحديث البيانات، تحديث الارصدة',
+    action_type: 'action',
+    action_payload: 'REFRESH_DATA',
+    icon: 'RefreshCw',
+    is_system: 1,
+    created_at: '2026-09-01 08:00:00',
+    updated_at: '2026-09-01 08:00:00',
   },
 ];
 
@@ -219,6 +560,21 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   details TEXT NOT NULL,
   user_name TEXT NOT NULL,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS command_keywords (
+  id INTEGER PRIMARY KEY,
+  command_key TEXT UNIQUE NOT NULL,
+  command_title TEXT NOT NULL,
+  command_description TEXT NOT NULL,
+  category TEXT NOT NULL,
+  keywords TEXT NOT NULL,
+  action_type TEXT NOT NULL,
+  action_payload TEXT,
+  icon TEXT,
+  is_system INTEGER DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 `;
 
@@ -442,6 +798,7 @@ class MillDatabase {
         { id: 3, order_id: 3, product_id: 5, quantity: 20, available_at_time: 80 },
       ],
       audit_logs: [...SEED_AUDIT_LOGS],
+      command_keywords: [...SEED_COMMAND_KEYWORDS],
     };
   }
 
@@ -452,6 +809,16 @@ class MillDatabase {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.suppliers && parsed.products) {
+            if (!parsed.command_keywords || parsed.command_keywords.length === 0) {
+              parsed.command_keywords = [...SEED_COMMAND_KEYWORDS];
+            } else {
+              const existingKeys = new Set(parsed.command_keywords.map((c: any) => c.command_key));
+              for (const seed of SEED_COMMAND_KEYWORDS) {
+                if (!existingKeys.has(seed.command_key)) {
+                  parsed.command_keywords.push({ ...seed });
+                }
+              }
+            }
             return parsed;
           }
         }
@@ -618,6 +985,22 @@ class MillDatabase {
       for (const al of data.audit_logs) {
         db.run('INSERT OR REPLACE INTO audit_logs VALUES (?, ?, ?, ?, ?)', [al.id, al.action, al.details, al.user_name, al.created_at]);
       }
+      for (const ck of data.command_keywords || []) {
+        db.run('INSERT OR REPLACE INTO command_keywords VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+          ck.id,
+          ck.command_key,
+          ck.command_title,
+          ck.command_description,
+          ck.category,
+          ck.keywords,
+          ck.action_type,
+          ck.action_payload || '',
+          ck.icon || '',
+          ck.is_system ? 1 : 0,
+          ck.created_at || '',
+          ck.updated_at || '',
+        ]);
+      }
       db.run('COMMIT;');
     } catch (err) {
       db.run('ROLLBACK;');
@@ -639,6 +1022,7 @@ class MillDatabase {
       this.memoryCache.withdrawal_orders = this.queryAllFromDb<WithdrawalOrder>('SELECT * FROM withdrawal_orders ORDER BY id DESC');
       this.memoryCache.withdrawal_order_items = this.queryAllFromDb<WithdrawalOrderItem>('SELECT * FROM withdrawal_order_items');
       this.memoryCache.audit_logs = this.queryAllFromDb<AuditLog>('SELECT * FROM audit_logs ORDER BY id DESC');
+      this.memoryCache.command_keywords = this.queryAllFromDb<CommandKeyword>('SELECT * FROM command_keywords ORDER BY id ASC');
       this.saveMemorySnapshot();
     } catch (err) {
       console.error('Error syncing memory from SQLite:', err);
@@ -2282,6 +2666,7 @@ class MillDatabase {
       withdrawal_orders: parsed.withdrawal_orders || [],
       withdrawal_order_items: parsed.withdrawal_order_items || [],
       audit_logs: parsed.audit_logs || [],
+      command_keywords: parsed.command_keywords?.length ? parsed.command_keywords : (this.memoryCache.command_keywords || [...SEED_COMMAND_KEYWORDS]),
     };
 
     if (this.sqliteDb) {
@@ -2297,6 +2682,7 @@ class MillDatabase {
       this.sqliteDb.run('DELETE FROM withdrawal_orders;');
       this.sqliteDb.run('DELETE FROM withdrawal_order_items;');
       this.sqliteDb.run('DELETE FROM audit_logs;');
+      this.sqliteDb.run('DELETE FROM command_keywords;');
       this.seedSqliteFromMemory(this.sqliteDb, this.memoryCache);
       this.sqliteDb.run('COMMIT;');
     }
@@ -2321,6 +2707,7 @@ class MillDatabase {
       this.sqliteDb.run('DELETE FROM withdrawal_orders;');
       this.sqliteDb.run('DELETE FROM withdrawal_order_items;');
       this.sqliteDb.run('DELETE FROM audit_logs;');
+      this.sqliteDb.run('DELETE FROM command_keywords;');
       this.seedSqliteFromMemory(this.sqliteDb, this.memoryCache);
       this.sqliteDb.run('COMMIT;');
     }
@@ -2352,6 +2739,7 @@ class MillDatabase {
           created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
         },
       ],
+      command_keywords: this.memoryCache.command_keywords?.length ? this.memoryCache.command_keywords : [...SEED_COMMAND_KEYWORDS],
     };
 
     if (this.sqliteDb) {
@@ -2372,6 +2760,241 @@ class MillDatabase {
       this.sqliteDb.run('COMMIT;');
     }
 
+    this.persistSqlite();
+    this.notify();
+  }
+
+  // --- Command Keywords DAO ---
+
+  public async getCommandKeywords(): Promise<CommandKeyword[]> {
+    if (this.sqliteDb) {
+      const rows = this.queryAllFromDb<CommandKeyword>('SELECT * FROM command_keywords ORDER BY id ASC');
+      let changed = false;
+      const existingKeys = new Set(rows.map((r) => r.command_key));
+
+      for (const seed of SEED_COMMAND_KEYWORDS) {
+        if (!existingKeys.has(seed.command_key)) {
+          const maxId = rows.reduce((max, r) => Math.max(max, r.id), 0);
+          const newCmd: CommandKeyword = {
+            ...seed,
+            id: Math.max(seed.id, maxId + 1),
+          };
+          this.sqliteDb.run(
+            `INSERT OR REPLACE INTO command_keywords (id, command_key, command_title, command_description, category, keywords, action_type, action_payload, icon, is_system, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              newCmd.id,
+              newCmd.command_key,
+              newCmd.command_title,
+              newCmd.command_description,
+              newCmd.category,
+              newCmd.keywords,
+              newCmd.action_type,
+              newCmd.action_payload || '',
+              newCmd.icon || '',
+              1,
+              newCmd.created_at || '',
+              newCmd.updated_at || '',
+            ]
+          );
+          rows.push(newCmd);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        rows.sort((a, b) => a.id - b.id);
+        this.memoryCache.command_keywords = rows;
+        this.persistSqlite();
+      }
+
+      if (rows && rows.length > 0) {
+        return rows;
+      }
+    }
+
+    if (!this.memoryCache.command_keywords || this.memoryCache.command_keywords.length === 0) {
+      this.memoryCache.command_keywords = [...SEED_COMMAND_KEYWORDS];
+    } else {
+      const existingKeys = new Set(this.memoryCache.command_keywords.map((r) => r.command_key));
+      for (const seed of SEED_COMMAND_KEYWORDS) {
+        if (!existingKeys.has(seed.command_key)) {
+          this.memoryCache.command_keywords.push({ ...seed });
+        }
+      }
+    }
+    return [...this.memoryCache.command_keywords];
+  }
+
+  public async getCommandKeywordById(id: number): Promise<CommandKeyword | undefined> {
+    if (this.sqliteDb) {
+      const list = this.queryAllFromDb<CommandKeyword>('SELECT * FROM command_keywords WHERE id = ?', [id]);
+      if (list[0]) return list[0];
+    }
+    return (this.memoryCache.command_keywords || []).find((c) => c.id === id);
+  }
+
+  public async resetSingleCommandKeywords(id: number, currentUser: string = 'مدير النظام'): Promise<CommandKeyword | undefined> {
+    const existing = await this.getCommandKeywordById(id);
+    if (!existing) return undefined;
+    const seed = SEED_COMMAND_KEYWORDS.find((s) => s.command_key === existing.command_key);
+    if (!seed) return existing;
+    return this.saveCommandKeyword({ id, keywords: seed.keywords }, currentUser);
+  }
+
+  public async updateCommandKeywords(id: number, keywords: string, currentUser: string = 'مدير النظام'): Promise<CommandKeyword> {
+    return this.saveCommandKeyword({ id, keywords: keywords.trim() }, currentUser);
+  }
+
+  public async saveCommandKeyword(
+    cmd: Partial<CommandKeyword> & { id?: number },
+    currentUser: string = 'مدير النظام'
+  ): Promise<CommandKeyword> {
+    let finalCommand: CommandKeyword;
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    if (cmd.id) {
+      const existing = await this.getCommandKeywordById(cmd.id);
+      if (!existing) throw new Error('الأمر غير موجود');
+      finalCommand = {
+        ...existing,
+        command_title: cmd.command_title !== undefined ? cmd.command_title.trim() : existing.command_title,
+        command_description: cmd.command_description !== undefined ? cmd.command_description.trim() : existing.command_description,
+        category: cmd.category !== undefined ? cmd.category.trim() : existing.category,
+        keywords: cmd.keywords !== undefined ? cmd.keywords.trim() : existing.keywords,
+        action_type: cmd.action_type || existing.action_type,
+        action_payload: cmd.action_payload !== undefined ? cmd.action_payload : existing.action_payload,
+        icon: cmd.icon || existing.icon,
+        updated_at: now,
+      };
+
+      if (this.sqliteDb) {
+        this.sqliteDb.run(
+          `UPDATE command_keywords 
+           SET command_title = ?, command_description = ?, category = ?, keywords = ?, action_type = ?, action_payload = ?, icon = ?, updated_at = ?
+           WHERE id = ?`,
+          [
+            finalCommand.command_title,
+            finalCommand.command_description,
+            finalCommand.category,
+            finalCommand.keywords,
+            finalCommand.action_type,
+            finalCommand.action_payload || '',
+            finalCommand.icon || '',
+            finalCommand.updated_at,
+            finalCommand.id,
+          ]
+        );
+      }
+      const idx = (this.memoryCache.command_keywords || []).findIndex((c) => c.id === finalCommand.id);
+      if (idx >= 0) this.memoryCache.command_keywords[idx] = finalCommand;
+
+      await this.logAudit('تحديث نصوص أمر', `تم تحديث نصوص وكلمات الأمر: ${finalCommand.command_title}`, currentUser);
+    } else {
+      const maxId = (this.memoryCache.command_keywords || []).reduce((max, c) => Math.max(max, c.id), 0);
+      finalCommand = {
+        id: maxId + 1,
+        command_key: cmd.command_key || `CUSTOM_CMD_${Date.now()}`,
+        command_title: (cmd.command_title || 'أمر جديد').trim(),
+        command_description: (cmd.command_description || '').trim(),
+        category: (cmd.category || 'عام').trim(),
+        keywords: (cmd.keywords || '').trim(),
+        action_type: cmd.action_type || 'navigation',
+        action_payload: cmd.action_payload || 'dashboard',
+        icon: cmd.icon || 'Terminal',
+        is_system: 0,
+        created_at: now,
+        updated_at: now,
+      };
+
+      if (this.sqliteDb) {
+        this.sqliteDb.run(
+          `INSERT INTO command_keywords (id, command_key, command_title, command_description, category, keywords, action_type, action_payload, icon, is_system, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            finalCommand.id,
+            finalCommand.command_key,
+            finalCommand.command_title,
+            finalCommand.command_description,
+            finalCommand.category,
+            finalCommand.keywords,
+            finalCommand.action_type,
+            finalCommand.action_payload || '',
+            finalCommand.icon || '',
+            finalCommand.is_system ? 1 : 0,
+            finalCommand.created_at,
+            finalCommand.updated_at,
+          ]
+        );
+      }
+      if (!this.memoryCache.command_keywords) this.memoryCache.command_keywords = [];
+      this.memoryCache.command_keywords.push(finalCommand);
+
+      await this.logAudit('إضافة أمر جديد', `تمت إضافة أمر جديد لجدول الأوامر: ${finalCommand.command_title}`, currentUser);
+    }
+
+    this.persistSqlite();
+    this.notify();
+    return finalCommand;
+  }
+
+  public async appendKeywordsToCommand(
+    id: number,
+    newKeywordsString: string,
+    currentUser: string = 'مدير النظام'
+  ): Promise<CommandKeyword> {
+    const existing = await this.getCommandKeywordById(id);
+    if (!existing) throw new Error('الأمر غير موجود');
+
+    const currentList = existing.keywords.split(/[,،]/).map((k) => k.trim()).filter(Boolean);
+    const addedList = newKeywordsString.split(/[,،]/).map((k) => k.trim()).filter(Boolean);
+
+    for (const kw of addedList) {
+      if (!currentList.includes(kw)) {
+        currentList.push(kw);
+      }
+    }
+
+    const updatedKeywords = currentList.join('، ');
+    return this.saveCommandKeyword({ id, keywords: updatedKeywords }, currentUser);
+  }
+
+  public async deleteCommandKeyword(id: number, currentUser: string = 'مدير النظام'): Promise<void> {
+    const existing = await this.getCommandKeywordById(id);
+    if (!existing) return;
+
+    if (this.sqliteDb) {
+      this.sqliteDb.run('DELETE FROM command_keywords WHERE id = ?', [id]);
+    }
+    this.memoryCache.command_keywords = (this.memoryCache.command_keywords || []).filter((c) => c.id !== id);
+
+    await this.logAudit('حذف أمر', `تم حذف الأمر: ${existing.command_title} (رقم ${id})`, currentUser);
+    this.persistSqlite();
+    this.notify();
+  }
+
+  public async resetCommandKeywordsToDefault(currentUser: string = 'مدير النظام'): Promise<void> {
+    this.memoryCache.command_keywords = [...SEED_COMMAND_KEYWORDS];
+    if (this.sqliteDb) {
+      this.sqliteDb.run('DELETE FROM command_keywords;');
+      for (const ck of SEED_COMMAND_KEYWORDS) {
+        this.sqliteDb.run('INSERT INTO command_keywords VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+          ck.id,
+          ck.command_key,
+          ck.command_title,
+          ck.command_description,
+          ck.category,
+          ck.keywords,
+          ck.action_type,
+          ck.action_payload || '',
+          ck.icon || '',
+          ck.is_system ? 1 : 0,
+          ck.created_at || '',
+          ck.updated_at || '',
+        ]);
+      }
+    }
+    await this.logAudit('استعادة الأوامر الافتراضية', 'تمت استعادة الكلمات المفتاحية الافتراضية لكافة الأوامر', currentUser);
     this.persistSqlite();
     this.notify();
   }

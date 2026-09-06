@@ -133,3 +133,20 @@ export interface StockSummaryRow {
   totalGrain: number;
   totalFlour: number;
 }
+
+export type CommandActionType = 'modal' | 'navigation' | 'action';
+
+export interface CommandKeyword {
+  id: number;
+  command_key: string;
+  command_title: string;
+  command_description: string;
+  category: string;
+  keywords: string; // كلمات مفتاحية مفصولة بفواصل مثل: "توريد, امر توريد, استلام قمح"
+  action_type: CommandActionType;
+  action_payload?: string;
+  icon?: string;
+  is_system?: number;
+  created_at?: string;
+  updated_at?: string;
+}

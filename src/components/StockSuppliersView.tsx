@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Wheat,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Supplier, Product, StockSummaryRow, UserRole } from '../types';
 import { millDb } from '../db/millDatabase';
+import { VoiceInputButton } from './VoiceInputButton';
 
 interface StockSuppliersViewProps {
   summary: StockSummaryRow[];
@@ -25,6 +26,8 @@ interface StockSuppliersViewProps {
   currentRole: UserRole;
   currentUserName: string;
   onViewSupplierLedger?: (supplierId: number) => void;
+  initialSubTab?: 'stock' | 'suppliers' | 'products';
+  autoOpenAdd?: 'supplier' | 'product' | null;
 }
 
 export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
@@ -34,8 +37,10 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
   currentRole,
   currentUserName,
   onViewSupplierLedger,
+  initialSubTab,
+  autoOpenAdd,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'stock' | 'suppliers' | 'products'>('stock');
+  const [activeSubTab, setActiveSubTab] = useState<'stock' | 'suppliers' | 'products'>(initialSubTab || 'stock');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Supplier modal
@@ -53,6 +58,30 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
   const [productCategory, setProductCategory] = useState<'حبوب' | 'مطحون'>('حبوب');
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
+  useEffect(() => {
+    if (autoOpenAdd === 'supplier') {
+      setActiveSubTab('suppliers');
+      setEditingSupplier(null);
+      setSupplierName('');
+      setSupplierPhone('');
+      setSupplierAddress('');
+      setIsSupplierModalOpen(true);
+    } else if (autoOpenAdd === 'product') {
+      setActiveSubTab('products');
+      setEditingProduct(null);
+      setProductName('');
+      setProductUnit('كيس');
+      setProductCategory('حبوب');
+      setIsProductModalOpen(true);
+    }
+  }, [autoOpenAdd]);
 
   const canManage = currentRole === 'مدير';
 
@@ -259,8 +288,17 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
           }
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-3 pr-9 py-1.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+          className="w-full pl-10 pr-9 py-1.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+          id="input-stock-search"
         />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+          <VoiceInputButton
+            onTranscript={(txt) => setSearchTerm(txt)}
+            currentValue={searchTerm}
+            title="البحث الصوتي"
+            id="btn-voice-stock-search"
+          />
+        </div>
       </div>
 
       {/* SUB-TAB 1: LIVE STOCK BREAKDOWN */}
@@ -547,9 +585,18 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
 
             <form onSubmit={handleSaveSupplier} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  اسم التاجر <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    اسم التاجر <span className="text-rose-500">*</span>
+                  </label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setSupplierName(txt)}
+                    currentValue={supplierName}
+                    size="sm"
+                    title="إملاء اسم التاجر بالصوت"
+                    id="btn-voice-supplier-name"
+                  />
+                </div>
                 <input
                   type="text"
                   value={supplierName}
@@ -572,7 +619,16 @@ export const StockSuppliersView: React.FC<StockSuppliersViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">العنوان أو المزرعة (اختياري)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">العنوان أو المزرعة (اختياري)</label>
+                  <VoiceInputButton
+                    onTranscript={(txt) => setSupplierAddress(txt)}
+                    currentValue={supplierAddress}
+                    size="sm"
+                    title="إملاء العنوان بالصوت"
+                    id="btn-voice-supplier-addr"
+                  />
+                </div>
                 <input
                   type="text"
                   value={supplierAddress}

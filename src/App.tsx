@@ -9,6 +9,9 @@ import {
   FileText,
   Settings,
   Plus,
+  Terminal,
+  Sparkles,
+  Command,
 } from 'lucide-react';
 import {
   Supplier,
@@ -21,6 +24,7 @@ import {
   AuditLog,
   StockSummaryRow,
   UserRole,
+  CommandKeyword,
 } from './types';
 import { millDb } from './db/millDatabase';
 import { Header } from './components/Header';
@@ -32,9 +36,12 @@ import { WithdrawalOrdersView } from './components/WithdrawalOrdersView';
 import { StockSuppliersView } from './components/StockSuppliersView';
 import { ReportsView } from './components/ReportsView';
 import { SettingsBackupView } from './components/SettingsBackupView';
+import { CommandKeywordsManagementView } from './components/CommandKeywordsManagementView';
+import { QuickCommandModal } from './components/QuickCommandModal';
 import { VoucherPrintModal } from './components/VoucherPrintModal';
 import { LicenseModal } from './components/LicenseModal';
 import { LicenseInfo, LicenseService } from './services/licenseService';
+import { saveBackupToTahonaFolder } from './utils/backupStorage';
 
 type ActiveTab =
   | 'dashboard'
@@ -43,7 +50,8 @@ type ActiveTab =
   | 'withdrawal_orders'
   | 'stock_suppliers'
   | 'reports'
-  | 'settings';
+  | 'settings'
+  | 'command_keywords';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -208,9 +216,109 @@ export default function App() {
     });
   }, [suppliers, grainStocks, flourStocks, productMap]);
 
+  // Quick Command Launcher state & shortcut
+  const [isQuickCommandOpen, setIsQuickCommandOpen] = useState(false);
+  const [stockSubTab, setStockSubTab] = useState<'stock' | 'suppliers' | 'products'>('stock');
+  const [stockAutoOpen, setStockAutoOpen] = useState<'supplier' | 'product' | null>(null);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Open Quick Command Palette with Ctrl+K or Cmd+K
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsQuickCommandOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   const handleRoleChange = (newRole: UserRole, newName: string) => {
     setCurrentRole(newRole);
     setCurrentUserName(newName);
+  };
+
+  const handleExecuteCommand = async (command: CommandKeyword) => {
+    if (command.action_type === 'modal') {
+      if (command.action_payload === 'NEW_PO') {
+        setActiveTab('purchase_orders');
+        setIsNewPOModalOpen(true);
+      } else if (command.action_payload === 'NEW_MO') {
+        setActiveTab('milling_orders');
+        setIsNewMOModalOpen(true);
+      } else if (command.action_payload === 'NEW_WO') {
+        setActiveTab('withdrawal_orders');
+        setIsNewWOModalOpen(true);
+      } else if (command.action_payload === 'NEW_SUPPLIER') {
+        setActiveTab('stock_suppliers');
+        setStockSubTab('suppliers');
+        setStockAutoOpen('supplier');
+        setTimeout(() => setStockAutoOpen(null), 500);
+      } else if (command.action_payload === 'NEW_PRODUCT') {
+        setActiveTab('stock_suppliers');
+        setStockSubTab('products');
+        setStockAutoOpen('product');
+        setTimeout(() => setStockAutoOpen(null), 500);
+      }
+    } else if (command.action_type === 'navigation') {
+      const targetTab = command.action_payload as ActiveTab;
+      if (targetTab) {
+        setActiveTab(targetTab);
+      }
+    } else if (command.action_type === 'action') {
+      if (command.action_payload === 'BACKUP_NOW') {
+        try {
+          const bytes = millDb.exportSqliteBinary();
+          const d = new Date();
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+          const filename = `mill_database_${timestamp}.sqlite`;
+          await saveBackupToTahonaFolder(filename, bytes, true);
+        } catch (e) {
+          console.error('Backup download error', e);
+        }
+      } else if (command.action_payload === 'SHARE_BACKUP') {
+        try {
+          const bytes = millDb.exportSqliteBinary();
+          const d = new Date();
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+          const filename = `mill_database_${timestamp}.sqlite`;
+          if (navigator.share && navigator.canShare) {
+            const file = new File([bytes], filename, { type: 'application/x-sqlite3' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                title: 'نسخة احتياطية لقاعدة بيانات الطاحونة',
+                text: `ملف قاعدة بيانات الطاحونة TAHON بتاريخ ${timestamp}`,
+                files: [file],
+              });
+              return;
+            }
+          }
+          await saveBackupToTahonaFolder(filename, bytes, true);
+        } catch (e) {
+          console.error('Share backup error', e);
+        }
+      } else if (command.action_payload === 'REFRESH_DATA') {
+        await refreshAllData();
+      } else if (command.action_payload === 'TOGGLE_THEME') {
+        toggleTheme();
+      } else if (command.action_payload === 'ROLE_ADMIN') {
+        handleRoleChange('مدير', 'صالح المشرف (المدير)');
+      } else if (command.action_payload === 'ROLE_EMPLOYEE') {
+        handleRoleChange('موظف', 'أحمد الاستقبال (موظف)');
+      } else if (command.action_payload === 'ROLE_ACCOUNTANT') {
+        handleRoleChange('محاسب', 'سعد المالي (محاسب)');
+      } else if (command.action_payload === 'OPEN_LICENSE') {
+        setIsLicenseModalOpen(true);
+      } else if (
+        command.action_payload === 'REPORT_SUPPLIER' ||
+        command.action_payload === 'REPORT_GRAIN' ||
+        command.action_payload === 'REPORT_FLOUR'
+      ) {
+        setActiveTab('reports');
+      }
+    }
   };
 
   if (isLoading) {
@@ -360,6 +468,19 @@ export default function App() {
               <Settings className="w-4 h-4" />
               <span>النسخ الاحتياطي (TAHON) والصلاحيات</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('command_keywords')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
+                activeTab === 'command_keywords'
+                  ? 'bg-amber-800 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Terminal className="w-4 h-4 text-amber-500" />
+              <span>جدول نصوص الأوامر</span>
+            </button>
           </div>
         </div>
       </nav>
@@ -450,6 +571,8 @@ export default function App() {
             products={products}
             currentRole={currentRole}
             currentUserName={currentUserName}
+            initialSubTab={stockSubTab}
+            autoOpenAdd={stockAutoOpen}
             onViewSupplierLedger={(supId) => {
               setReportSupplierId(supId);
               setActiveTab('reports');
@@ -480,7 +603,46 @@ export default function App() {
             onRefreshLicense={refreshLicense}
           />
         )}
+
+        {activeTab === 'command_keywords' && (
+          <CommandKeywordsManagementView
+            currentRole={currentRole}
+            currentUserName={currentUserName}
+            onExecuteCommand={handleExecuteCommand}
+          />
+        )}
       </main>
+
+      {/* Floating Quick Commands Button (FAB) */}
+      <div className="no-print fixed bottom-6 left-6 z-40 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIsQuickCommandOpen(true)}
+          className="group flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-2xl shadow-xl hover:shadow-2xl border border-amber-400/30 font-bold text-sm transition-all duration-200 active:scale-95 focus:outline-none focus:ring-4 focus:ring-amber-500/30 cursor-pointer"
+          id="fab-quick-commands"
+          title="الأوامر السريعة بالذكاء التنبؤي (Ctrl+K)"
+        >
+          <div className="relative flex items-center justify-center">
+            <Terminal className="w-5 h-5 text-white" />
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-300"></span>
+            </span>
+          </div>
+          <span className="tracking-wide">الأوامر السريعة</span>
+          <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-amber-800/60 text-amber-100 text-[10px] font-mono border border-amber-500/30">
+            Ctrl+K
+          </span>
+        </button>
+      </div>
+
+      {/* Quick Command Launcher Palette Dialog */}
+      <QuickCommandModal
+        isOpen={isQuickCommandOpen}
+        onClose={() => setIsQuickCommandOpen(false)}
+        onExecuteCommand={handleExecuteCommand}
+        onOpenManagementView={() => setActiveTab('command_keywords')}
+      />
 
       {/* License & 3-Day Trial Activation Modal (Unclosable/Blocking when trial has expired) */}
       <LicenseModal
