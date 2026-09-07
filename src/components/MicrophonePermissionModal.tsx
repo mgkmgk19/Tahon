@@ -375,6 +375,12 @@ export const MicrophonePermissionModal: React.FC<MicrophonePermissionModalProps>
                     </p>
                   </div>
                 </div>
+
+                {/* Android Installed APK Note */}
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-900 dark:text-amber-200">
+                  <span className="font-bold block mb-1">📱 لمستخدمي تطبيق أندرويد المثبت (APK):</span>
+                  <span>افتح ضبط الهاتف (Settings) ⬅ التطبيقات (Apps) ⬅ «نظام إدارة محل الطاحونة» ⬅ الأذونات (Permissions) ⬅ الميكروفون ⬅ اختر «سماح أثناء استخدام التطبيق فقط».</span>
+                </div>
               </div>
             )}
           </div>

@@ -57,13 +57,17 @@ jobs:
           echo "Syncing Capacitor Android platform..."
           npx cap sync android
 
-      - name: Configure Storage Permissions for Documents/TAHON
+      - name: Configure Android Permissions & Runtime Prompts (Microphone & Storage)
         run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if [ -f "$MANIFEST" ]; then
-            if ! grep -q "WRITE_EXTERNAL_STORAGE" "$MANIFEST"; then
-              sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" \/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" \/>' "$MANIFEST"
-              echo "Added READ/WRITE_EXTERNAL_STORAGE permissions to AndroidManifest.xml"
+          if [ -f "scripts/configure-android.js" ]; then
+            node scripts/configure-android.js
+          else
+            MANIFEST="android/app/src/main/AndroidManifest.xml"
+            if [ -f "$MANIFEST" ]; then
+              if ! grep -q "RECORD_AUDIO" "$MANIFEST"; then
+                sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" \/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" \/>\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" \/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" \/>\n    <uses-permission android:name="android.permission.INTERNET" \/>\n    <uses-feature android:name="android.hardware.microphone" android:required="false" \/>' "$MANIFEST"
+                echo "Added RECORD_AUDIO and Storage permissions to AndroidManifest.xml"
+              fi
             fi
           fi
 
