@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PWAInstallButton } from './PWAInstallButton';
 import { OfflineIndicator } from './OfflineIndicator';
 import { UserRole } from '../types';
-import { UserCheck, Sun, Moon, ShieldCheck, Clock, ShieldAlert } from 'lucide-react';
+import { UserCheck, Sun, Moon, ShieldCheck, Clock, ShieldAlert, Mic, MicOff } from 'lucide-react';
 import { LicenseInfo } from '../services/licenseService';
+import { MicrophonePermissionModal } from './MicrophonePermissionModal';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -22,6 +23,31 @@ export const Header: React.FC<HeaderProps> = ({
   licenseInfo,
   onOpenLicenseModal,
 }) => {
+  const [isMicModalOpen, setIsMicModalOpen] = useState(false);
+  const [micStatus, setMicStatus] = useState<'prompt' | 'granted' | 'denied' | 'unknown'>('unknown');
+
+  // Check microphone permission status
+  useEffect(() => {
+    let permStatus: PermissionStatus | null = null;
+    const checkPerm = async () => {
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          permStatus = await navigator.permissions.query({ name: 'microphone' as any });
+          setMicStatus(permStatus.state);
+          permStatus.onchange = () => {
+            if (permStatus) setMicStatus(permStatus.state);
+          };
+        }
+      } catch {
+        setMicStatus('unknown');
+      }
+    };
+    checkPerm();
+    return () => {
+      if (permStatus) permStatus.onchange = null;
+    };
+  }, []);
+
   return (
     <header className="no-print bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
@@ -108,6 +134,34 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
+          {/* Microphone Permission / Status Button */}
+          <button
+            type="button"
+            onClick={() => setIsMicModalOpen(true)}
+            className={`relative flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              micStatus === 'denied'
+                ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100'
+                : micStatus === 'granted'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                : 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
+            }`}
+            title="فحص وإعدادات إذن الميكروفون الصوتي"
+            id="btn-header-mic-settings"
+          >
+            {micStatus === 'denied' ? (
+              <>
+                <MicOff className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                <span className="hidden md:inline">فك حظر الميكروفون</span>
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping absolute -top-0.5 -right-0.5 md:static md:animate-none"></span>
+              </>
+            ) : (
+              <>
+                <Mic className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span className="hidden md:inline">إذن الميكروفون</span>
+              </>
+            )}
+          </button>
+
           {/* Theme Toggle Button (Light / Dark) */}
           <button
             type="button"
@@ -127,6 +181,13 @@ export const Header: React.FC<HeaderProps> = ({
           <PWAInstallButton variant="compact" />
         </div>
       </div>
+
+      {/* Microphone Permission Modal */}
+      <MicrophonePermissionModal
+        isOpen={isMicModalOpen}
+        onClose={() => setIsMicModalOpen(false)}
+        onPermissionGranted={() => setMicStatus('granted')}
+      />
     </header>
   );
 };

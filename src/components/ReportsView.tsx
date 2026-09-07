@@ -28,6 +28,7 @@ import {
   Product,
   StockSummaryRow,
 } from '../types';
+import { VoiceInputButton } from './VoiceInputButton';
 import {
   exportToXLS,
   printOrSavePDF,
@@ -334,15 +335,38 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             </div>
           )}
 
-          {(startDate || endDate || (selectedReport !== 'supplier_ledger' && selectedSupplierId !== 0)) && (
+          {/* Quick Voice / Text Search Filter inside Reports */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="تصفية التقرير صوتياً أو كتابة (رقم السند، الصنف، ملاحظات)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 rounded-lg border border-slate-200 bg-white text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+              id="input-reports-search"
+            />
+            <div className="absolute left-1.5 top-1/2 -translate-y-1/2">
+              <VoiceInputButton
+                onTranscript={(txt) => setSearchTerm(txt)}
+                currentValue={searchTerm}
+                title="تصفية التقرير صوتياً باللغة العربية"
+                size="sm"
+                id="btn-voice-reports-search"
+              />
+            </div>
+          </div>
+
+          {(startDate || endDate || searchTerm || (selectedReport !== 'supplier_ledger' && selectedSupplierId !== 0)) && (
             <button
               type="button"
               onClick={() => {
                 setStartDate('');
                 setEndDate('');
+                setSearchTerm('');
                 if (selectedReport !== 'supplier_ledger') setSelectedSupplierId(0);
               }}
-              className="text-amber-800 underline font-semibold mr-auto text-xs"
+              className="text-amber-800 underline font-semibold mr-auto text-xs whitespace-nowrap cursor-pointer"
             >
               مسح الفلاتر
             </button>
@@ -524,12 +548,28 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           const finalGrainBalance = runningGrain;
           const finalFlourBalance = runningFlour;
 
+          const displayMovements = periodMovements.filter((m) => {
+            if (!searchTerm.trim()) return true;
+            const q = searchTerm.toLowerCase().trim();
+            return (
+              m.orderNumber.toLowerCase().includes(q) ||
+              m.productName.toLowerCase().includes(q) ||
+              m.docTypeName.toLowerCase().includes(q) ||
+              (m.notes && m.notes.toLowerCase().includes(q))
+            );
+          });
+
           return (
             <div className="space-y-6">
               {/* Export Buttons */}
               <div className="no-print flex items-center justify-between gap-2">
                 <div className="text-xs text-slate-500 font-medium">
-                  عدد حركات الفترة: <strong className="text-slate-900">{periodMovements.length}</strong> حركة مسجلة
+                  عدد حركات الفترة: <strong className="text-slate-900">{displayMovements.length}</strong> حركة مسجلة
+                  {searchTerm && (
+                    <span className="text-amber-800 font-bold mr-1">
+                      (مفلترة بحسب: "{searchTerm}")
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Export XLS */}
@@ -849,8 +889,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                       </tr>
                     )}
 
-                    {periodMovements.length > 0 ? (
-                      periodMovements.map((row, idx) => (
+                    {displayMovements.length > 0 ? (
+                      displayMovements.map((row, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/90 transition">
                           <td className="p-3 font-mono text-slate-600 whitespace-nowrap">{row.date}</td>
                           <td className="p-3 font-mono font-bold text-slate-900 whitespace-nowrap">

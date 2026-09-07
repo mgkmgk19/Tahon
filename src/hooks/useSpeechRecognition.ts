@@ -158,15 +158,22 @@ export const useSpeechRecognition = (defaultOptions: UseSpeechRecognitionOptions
     };
 
     recognition.onerror = (event: any) => {
-      let message = 'حدث خطأ أثناء التعرف على الصوت';
       const err = event.error;
+
+      // When user stops or cancels, 'aborted' is fired normally and should not show an error
+      if (err === 'aborted') {
+        setIsListening(false);
+        return;
+      }
+
+      let message = 'حدث خطأ أثناء التعرف على الصوت';
 
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         message = 'تم رفض الإذن للميكروفون. يرجى السماح بالوصول للميكروفون في المتصفح.';
       } else if (err === 'no-speech') {
         message = 'لم يتم التقاط أي صوت، يرجى التحدث بوضوح في الميكروفون.';
       } else if (err === 'network') {
-        message = 'تعذر الاتصال بخدمة الصوت (قد يتطلب المتصفح إتاحة محرك الصوت).';
+        message = 'تعذر الاتصال بخدمة الصوت (قد يتطلب المتصفح اتصالاً بالإنترنت لتشغيل نموذج الصوت).';
       } else if (err === 'audio-capture') {
         message = 'لم يتم العثور على ميكروفون موصول في جهازك.';
       }
